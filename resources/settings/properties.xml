@@ -1,0 +1,11 @@
+<properties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <!-- Defaults must match AppSettings.DEFAULT_* so a device that has not yet
+         synced its settings looks the same as one that has. -->
+    <property id="ShowSeconds" type="boolean">true</property>
+    <property id="ShowPressureGraph" type="boolean">true</property>
+    <property id="ShowHeartRate" type="boolean">true</property>
+    <property id="StormAlert" type="boolean">true</property>
+
+    <!-- 0 = hPa, 1 = inHg, 2 = mmHg. See PressureFormatter.UNIT_*. -->
+    <property id="PressureUnit" type="number">0</property>
+</properties>

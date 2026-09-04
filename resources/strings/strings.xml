@@ -1,0 +1,24 @@
+<strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <string id="AppName">BaroBuddy</string>
+
+    <!-- Forecast labels, see WeatherPredictor.Forecast -->
+    <string id="ForecastRisingFast">Windy / Clearing</string>
+    <string id="ForecastRising">Fair</string>
+    <string id="ForecastSteady">Steady</string>
+    <string id="ForecastFalling">Rain likely</string>
+    <string id="ForecastFallingFast">Storm warning</string>
+
+    <!-- Drawn over the graph row while the storm alert is latched. Kept short:
+         it has to fit the chord of a round screen at that height. -->
+    <string id="StormBanner">STORM</string>
+
+    <!-- Settings, see resources/settings/settings.xml -->
+    <string id="SettingShowSeconds">Show Seconds</string>
+    <string id="SettingShowGraph">Show Pressure Graph</string>
+    <string id="SettingShowHeartRate">Show Heart Rate</string>
+    <string id="SettingStormAlert">Storm Warning Banner</string>
+    <string id="SettingPressureUnit">Pressure Unit</string>
+    <string id="UnitHpa">hPa</string>
+    <string id="UnitInHg">inHg</string>
+    <string id="UnitMmHg">mmHg</string>
+</strings>

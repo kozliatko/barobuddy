@@ -1,0 +1,25 @@
+<settings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <setting propertyKey="@Properties.ShowSeconds" title="@Strings.SettingShowSeconds">
+        <settingConfig type="boolean" />
+    </setting>
+
+    <setting propertyKey="@Properties.ShowPressureGraph" title="@Strings.SettingShowGraph">
+        <settingConfig type="boolean" />
+    </setting>
+
+    <setting propertyKey="@Properties.ShowHeartRate" title="@Strings.SettingShowHeartRate">
+        <settingConfig type="boolean" />
+    </setting>
+
+    <setting propertyKey="@Properties.StormAlert" title="@Strings.SettingStormAlert">
+        <settingConfig type="boolean" />
+    </setting>
+
+    <setting propertyKey="@Properties.PressureUnit" title="@Strings.SettingPressureUnit">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.UnitHpa</listEntry>
+            <listEntry value="1">@Strings.UnitInHg</listEntry>
+            <listEntry value="2">@Strings.UnitMmHg</listEntry>
+        </settingConfig>
+    </setting>
+</settings>
