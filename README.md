@@ -1,5 +1,13 @@
 # BaroBuddy
 
+[![License: MIT](https://img.shields.io/github/license/kozliatko/barobuddy?color=blue)](LICENSE)
+[![Platform: Connect IQ](https://img.shields.io/badge/platform-Connect%20IQ-007cc3)](https://developer.garmin.com/connect-iq/overview/)
+[![API 3.0.0](https://img.shields.io/badge/API-3.0.0-007cc3)](https://developer.garmin.com/connect-iq/api-docs/)
+[![Language: Monkey C](https://img.shields.io/badge/language-Monkey%20C-6f4e9c)](https://developer.garmin.com/connect-iq/monkey-c/)
+[![Devices: 6](https://img.shields.io/badge/devices-6-informational)](#supported-devices)
+[![Unit tests: 54](https://img.shields.io/badge/unit%20tests-54-brightgreen)](#running-the-tests)
+[![Type check: strict](https://img.shields.io/badge/monkeyc%20--l%203-clean-brightgreen)](#building-from-source)
+
 A barometric weather watch face for Garmin Connect IQ devices.
 
 BaroBuddy forecasts the next few hours of weather the way a ship's barometer
