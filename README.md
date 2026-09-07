@@ -26,6 +26,67 @@ forecast is computed entirely on the watch from its own barometer.
 the storm banner appears next to a "clearing" icon and why the pressure reads
 864 hPa — see [Notes on the reading](#notes-on-the-reading).*
 
+## Why a barometer, when the phone already has weather
+
+A phone forecast is a statement about a region, computed hours ago, somewhere
+else, by someone else — and it reaches you only if a cell tower does. A
+barometer is a statement about the column of air directly over your head, made
+continuously, by an instrument strapped to your wrist.
+
+In town, with four bars of signal, the phone wins every time. BaroBuddy is for
+the hours when the phone isn't the one answering.
+
+**The valley with no bars.** Terrain that is worth walking into is terrain that
+blocks signal. You drop below a ridge at nine in the morning with a forecast
+that was already six hours old, and the next time your phone has anything to
+say is when you climb out again. The air above you does not go quiet. If the
+pressure has fallen 4 hPa since breakfast, something is coming, and you know it
+before the sky says so.
+
+**The phone that stayed behind.** In the car, on the charger, in the bottom of
+a pack under everything else, or simply dead by mid-afternoon in the cold. The
+watch is the one instrument you never take off, and it has been sampling the
+whole time regardless.
+
+**The morning that looked fine.** The worst decisions in the mountains are made
+in good weather — a fast-moving front is often invisible for hours before it
+arrives, but it is never silent on a barometer. A pressure drop of a few hPa
+over three hours is the earliest warning any instrument can give you, and it
+arrives while you still have the option of turning around, dropping to a lower
+route or getting the tent up on ground you chose rather than ground that chose
+you.
+
+**The night in the hut.** No reception, no plug, a long walk out in the
+morning, and a decision to make about which way to take. Six hours of pressure
+history on your wrist is a better basis for it than yesterday's forecast and a
+look out of the window.
+
+None of this asks anything of you. There is no app to open, no refresh to wait
+for, no battery-hungry radio. You look at your watch to check the time, and the
+sky's intentions are already there in the corner of the screen.
+
+### What it can and cannot tell you
+
+Be clear about what you are reading. A barometer measures one thing extremely
+well: the direction and rate of change of local pressure, which is a genuine
+leading indicator of weather over roughly the next six to twelve hours. It
+knows nothing about where a front is coming from, whether the precipitation
+will be rain or snow, or how cold it will get. It is an early warning, not a
+forecast in the meteorological sense, and it works best as a reason to look up,
+check the sky and reconsider a plan.
+
+One caveat matters more than the rest, and it is not a shortcoming of this app
+so much as of physics: **pressure falls as you climb**. Roughly 1 hPa per 8.5
+metres of ascent near sea level. Gain 300 metres and the watch sees a fall of
+about 35 hPa — far larger than any weather signal, and it will read as a storm.
+The trend is meaningful when you are staying put, or moving across roughly
+level ground: a camp, a hut, a valley walk, a boat, a night's sleep. On a long
+climb, read the reading, not the trend, and take the forecast seriously again
+once you have settled at an altitude.
+
+And the obvious one: a watch face is not safety equipment. Take the map, the
+shell layer, the head torch and the means to call for help anyway.
+
 ## Features
 
 - **Six-hour pressure trend** from the watch's own barometer, expressed in
