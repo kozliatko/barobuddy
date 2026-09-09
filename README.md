@@ -97,9 +97,11 @@ shell layer, the head torch and the means to call for help anyway.
   `SensorHistory`, so it is useful within minutes of installation instead of
   after six hours of wear.
 - **Pressure graph** of the recent trace, drawn from the same buffer.
-- **Bottom status row**: heart rate, step count and battery.
-- **Configurable** from the Garmin Connect app: units (hPa / inHg / mmHg) and
-  which rows to show.
+- **Bottom status row** of three cells, each one set to whatever you want it
+  to show: heart rate, steps, battery, calories, distance, floors climbed,
+  notifications — or nothing at all.
+- **Configurable** from the Garmin Connect app: units (hPa / inHg / mmHg),
+  which rows to show and what the status row holds.
 - **Low-power aware.** In gesture-off mode only the seconds rectangle is
   redrawn, and the graph is dropped entirely.
 
@@ -118,10 +120,28 @@ six devices with three different screen sizes.
 | Date | `Fri 4 Sep` |
 | Pressure | Trend arrow, coloured by direction, then the reading and its unit |
 | Graph **or** storm | The recent pressure trace; during a storm a red banner takes its place |
-| Status | Heart rate, steps, battery (the icon turns red below 15%) |
+| Status | Three configurable cells, heart rate / steps / battery by default |
 
 The banner replaces the graph deliberately: during a storm the warning matters
 more than the curve that led to it.
+
+Each cell of the status row can be pointed at a different field, and a cell set
+to *Off* is dropped entirely — the remaining ones then spread across the whole
+row instead of leaving a gap:
+
+| Field | Shows |
+| --- | --- |
+| Off | Nothing; the cell is not drawn |
+| Heart Rate | Live heart rate, falling back to the last logged sample |
+| Steps | Today's step count, abbreviated to `8.4k` only when it will not fit |
+| Battery | Charge, red below 15% |
+| Calories | Today's calories, active plus resting |
+| Distance | Today's distance in km or miles, following the watch's own unit |
+| Floors Climbed | Floors from the same barometer the rest of the face runs on |
+| Notifications | Notifications waiting on the phone |
+
+The icons are drawn from primitives rather than loaded as bitmaps, which is
+what keeps eight of them affordable inside the FR935's watch face memory.
 
 ## How the forecast works
 
@@ -187,12 +207,15 @@ Configurable from the Garmin Connect app under the watch face's settings:
 | --- | --- | --- |
 | Show Seconds | on | Seconds beside the time, redrawn by the partial-update path |
 | Show Pressure Graph | on | The pressure trace row |
-| Show Heart Rate | on | The heart rate cell in the status row |
 | Storm Warning Banner | on | The red storm banner |
 | Pressure Unit | hPa | hPa, inHg or mmHg |
+| Bottom Left Field | Heart Rate | Left cell of the status row |
+| Bottom Middle Field | Steps | Middle cell of the status row |
+| Bottom Right Field | Battery | Right cell of the status row |
 
-An unrecognised unit — from a newer settings page than the installed face —
-is clamped back to hPa rather than passed on.
+An unrecognised value — from a newer settings page than the installed face —
+is clamped back to the default rather than passed on: an unknown unit reads as
+hPa, an unknown status field as whatever that cell shows out of the box.
 
 ## Building from source
 
@@ -235,16 +258,17 @@ monkeyc -f monkey.jungle -d fr935 -o bin/BaroBuddyTest.prg \
 monkeydo bin/BaroBuddyTest.prg fr935 -t
 ```
 
-54 tests covering the buffer arithmetic, the forecast thresholds and their
+59 tests covering the buffer arithmetic, the forecast thresholds and their
 boundaries, the storm hysteresis and re-arm window, the unit conversions, the
-`Application.Storage` round trip, and six render smoke tests that draw the full
-face into an off-screen `BufferedBitmap`.
+settings validation, the `Application.Storage` round trip, and eight render
+smoke tests that draw the full face into an off-screen `BufferedBitmap`.
 
 The render tests cannot say whether the face *looks* right, but they catch what
 a static review does not: a null dereference in a branch that only runs during
 a storm, a polygon built from a negative size, a resource id that no longer
-resolves. Every state is exercised, including the empty first-run buffer and a
-full sleep/wake cycle.
+resolves. Every state is exercised, including the empty first-run buffer, every
+status field in every cell, a status row with all three cells switched off, and
+a full sleep/wake cycle.
 
 Run a single test with `monkeydo bin/BaroBuddyTest.prg fr935 -t <test_name>`.
 
@@ -274,6 +298,7 @@ source/
   WeatherPredictor.mc     Trend to forecast state, arrows, labels
   StormMonitor.mc         Latching storm alert with hysteresis and a re-arm window
   PressureFormatter.mc    hPa / inHg / mmHg conversion and formatting
+  StatusField.mc          Ids for what each status row cell shows
   AppSettings.mc          Typed, validated access to the property store
   *Test.mc                Unit and render tests, excluded from shipping builds
 resources/                Strings, settings, properties, 40x40 launcher icon

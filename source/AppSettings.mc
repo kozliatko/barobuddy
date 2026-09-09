@@ -15,29 +15,41 @@ class AppSettings {
 
     private const KEY_SHOW_SECONDS = "ShowSeconds";
     private const KEY_SHOW_GRAPH = "ShowPressureGraph";
-    private const KEY_SHOW_HEART_RATE = "ShowHeartRate";
     private const KEY_STORM_ALERT = "StormAlert";
     private const KEY_PRESSURE_UNIT = "PressureUnit";
+
+    //! One key per cell of the status row, left to right. Indexed by slot, so
+    //! the order here is the order on screen.
+    private const KEYS_STATUS_FIELD = [
+        "StatusFieldLeft", "StatusFieldMiddle", "StatusFieldRight"
+    ];
 
     // Defaults, used when a key is missing or holds a value of the wrong type.
     // They match resources/settings/properties.xml.
     private const DEFAULT_SHOW_SECONDS = true;
     private const DEFAULT_SHOW_GRAPH = true;
-    private const DEFAULT_SHOW_HEART_RATE = true;
     private const DEFAULT_STORM_ALERT = true;
+
+    //! Heart rate, steps and battery — the row the face shipped with before
+    //! the cells became configurable.
+    private const DEFAULT_STATUS_FIELDS = [
+        StatusField.FIELD_HEART_RATE,
+        StatusField.FIELD_STEPS,
+        StatusField.FIELD_BATTERY
+    ];
 
     private var _showSeconds as Lang.Boolean;
     private var _showGraph as Lang.Boolean;
-    private var _showHeartRate as Lang.Boolean;
     private var _stormAlert as Lang.Boolean;
     private var _pressureUnit as Lang.Number;
+    private var _statusFields as Lang.Array<Lang.Number>;
 
     function initialize() {
         _showSeconds = DEFAULT_SHOW_SECONDS;
         _showGraph = DEFAULT_SHOW_GRAPH;
-        _showHeartRate = DEFAULT_SHOW_HEART_RATE;
         _stormAlert = DEFAULT_STORM_ALERT;
         _pressureUnit = PressureFormatter.UNIT_HPA;
+        _statusFields = new Lang.Array<Lang.Number>[StatusField.SLOT_COUNT];
         load();
     }
 
@@ -46,7 +58,6 @@ class AppSettings {
     function load() as Void {
         _showSeconds = _readBoolean(KEY_SHOW_SECONDS, DEFAULT_SHOW_SECONDS);
         _showGraph = _readBoolean(KEY_SHOW_GRAPH, DEFAULT_SHOW_GRAPH);
-        _showHeartRate = _readBoolean(KEY_SHOW_HEART_RATE, DEFAULT_SHOW_HEART_RATE);
         _stormAlert = _readBoolean(KEY_STORM_ALERT, DEFAULT_STORM_ALERT);
 
         var unit = _readNumber(KEY_PRESSURE_UNIT, PressureFormatter.UNIT_HPA);
@@ -54,6 +65,15 @@ class AppSettings {
             unit = PressureFormatter.UNIT_HPA;
         }
         _pressureUnit = unit;
+
+        for (var slot = 0; slot < StatusField.SLOT_COUNT; slot++) {
+            var fallback = DEFAULT_STATUS_FIELDS[slot];
+            var field = _readNumber(KEYS_STATUS_FIELD[slot], fallback);
+            if (!StatusField.isValid(field)) {
+                field = fallback;
+            }
+            _statusFields[slot] = field;
+        }
     }
 
     function getShowSeconds() as Lang.Boolean {
@@ -64,10 +84,6 @@ class AppSettings {
         return _showGraph;
     }
 
-    function getShowHeartRate() as Lang.Boolean {
-        return _showHeartRate;
-    }
-
     function getStormAlert() as Lang.Boolean {
         return _stormAlert;
     }
@@ -75,6 +91,16 @@ class AppSettings {
     //! One of the PressureFormatter.UNIT_* ids, always valid.
     function getPressureUnit() as Lang.Number {
         return _pressureUnit;
+    }
+
+    //! What the status row cell in `slot` shows, left to right, as one of the
+    //! StatusField.FIELD_* ids. Always valid. Out of range slots read as
+    //! FIELD_NONE rather than throwing: this is called from the draw path.
+    function getStatusField(slot as Lang.Number) as Lang.Number {
+        if (slot < 0 || slot >= StatusField.SLOT_COUNT) {
+            return StatusField.FIELD_NONE;
+        }
+        return _statusFields[slot];
     }
 
     // --- Private -------------------------------------------------------------

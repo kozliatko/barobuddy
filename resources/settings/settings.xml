@@ -7,10 +7,6 @@
         <settingConfig type="boolean" />
     </setting>
 
-    <setting propertyKey="@Properties.ShowHeartRate" title="@Strings.SettingShowHeartRate">
-        <settingConfig type="boolean" />
-    </setting>
-
     <setting propertyKey="@Properties.StormAlert" title="@Strings.SettingStormAlert">
         <settingConfig type="boolean" />
     </setting>
@@ -20,6 +16,48 @@
             <listEntry value="0">@Strings.UnitHpa</listEntry>
             <listEntry value="1">@Strings.UnitInHg</listEntry>
             <listEntry value="2">@Strings.UnitMmHg</listEntry>
+        </settingConfig>
+    </setting>
+
+    <!-- The status row. The same list of fields three times, once per cell;
+         the values are StatusField.FIELD_* and must match properties.xml. A
+         cell set to "Off" is dropped and the remaining ones spread out. -->
+    <setting propertyKey="@Properties.StatusFieldLeft" title="@Strings.SettingStatusFieldLeft">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.FieldNone</listEntry>
+            <listEntry value="1">@Strings.FieldHeartRate</listEntry>
+            <listEntry value="2">@Strings.FieldSteps</listEntry>
+            <listEntry value="3">@Strings.FieldBattery</listEntry>
+            <listEntry value="4">@Strings.FieldCalories</listEntry>
+            <listEntry value="5">@Strings.FieldDistance</listEntry>
+            <listEntry value="6">@Strings.FieldFloors</listEntry>
+            <listEntry value="7">@Strings.FieldNotifications</listEntry>
+        </settingConfig>
+    </setting>
+
+    <setting propertyKey="@Properties.StatusFieldMiddle" title="@Strings.SettingStatusFieldMiddle">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.FieldNone</listEntry>
+            <listEntry value="1">@Strings.FieldHeartRate</listEntry>
+            <listEntry value="2">@Strings.FieldSteps</listEntry>
+            <listEntry value="3">@Strings.FieldBattery</listEntry>
+            <listEntry value="4">@Strings.FieldCalories</listEntry>
+            <listEntry value="5">@Strings.FieldDistance</listEntry>
+            <listEntry value="6">@Strings.FieldFloors</listEntry>
+            <listEntry value="7">@Strings.FieldNotifications</listEntry>
+        </settingConfig>
+    </setting>
+
+    <setting propertyKey="@Properties.StatusFieldRight" title="@Strings.SettingStatusFieldRight">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.FieldNone</listEntry>
+            <listEntry value="1">@Strings.FieldHeartRate</listEntry>
+            <listEntry value="2">@Strings.FieldSteps</listEntry>
+            <listEntry value="3">@Strings.FieldBattery</listEntry>
+            <listEntry value="4">@Strings.FieldCalories</listEntry>
+            <listEntry value="5">@Strings.FieldDistance</listEntry>
+            <listEntry value="6">@Strings.FieldFloors</listEntry>
+            <listEntry value="7">@Strings.FieldNotifications</listEntry>
         </settingConfig>
     </setting>
 </settings>

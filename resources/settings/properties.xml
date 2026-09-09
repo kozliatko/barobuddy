@@ -3,9 +3,14 @@
          synced its settings looks the same as one that has. -->
     <property id="ShowSeconds" type="boolean">true</property>
     <property id="ShowPressureGraph" type="boolean">true</property>
-    <property id="ShowHeartRate" type="boolean">true</property>
     <property id="StormAlert" type="boolean">true</property>
 
     <!-- 0 = hPa, 1 = inHg, 2 = mmHg. See PressureFormatter.UNIT_*. -->
     <property id="PressureUnit" type="number">0</property>
+
+    <!-- The three cells of the status row, left to right. See
+         StatusField.FIELD_*. The defaults are heart rate, steps and battery. -->
+    <property id="StatusFieldLeft" type="number">1</property>
+    <property id="StatusFieldMiddle" type="number">2</property>
+    <property id="StatusFieldRight" type="number">3</property>
 </properties>

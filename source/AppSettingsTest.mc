@@ -16,9 +16,13 @@ function testSettingsDefaults(logger as Test.Logger) as Lang.Boolean {
 
     Test.assertMessage(s.getShowSeconds(), "ShowSeconds should default to true");
     Test.assertMessage(s.getShowGraph(), "ShowPressureGraph should default to true");
-    Test.assertMessage(s.getShowHeartRate(), "ShowHeartRate should default to true");
     Test.assertMessage(s.getStormAlert(), "StormAlert should default to true");
     Test.assertEqual(s.getPressureUnit(), PressureFormatter.UNIT_HPA);
+
+    // The default row is the one the face shipped with.
+    Test.assertEqual(s.getStatusField(0), StatusField.FIELD_HEART_RATE);
+    Test.assertEqual(s.getStatusField(1), StatusField.FIELD_STEPS);
+    Test.assertEqual(s.getStatusField(2), StatusField.FIELD_BATTERY);
 
     return true;
 }
@@ -29,9 +33,13 @@ function testSettingsTypes(logger as Test.Logger) as Lang.Boolean {
 
     Test.assertMessage(s.getShowSeconds() instanceof Lang.Boolean, "ShowSeconds is not a Boolean");
     Test.assertMessage(s.getShowGraph() instanceof Lang.Boolean, "ShowGraph is not a Boolean");
-    Test.assertMessage(s.getShowHeartRate() instanceof Lang.Boolean, "ShowHeartRate is not a Boolean");
     Test.assertMessage(s.getStormAlert() instanceof Lang.Boolean, "StormAlert is not a Boolean");
     Test.assertMessage(s.getPressureUnit() instanceof Lang.Number, "PressureUnit is not a Number");
+
+    for (var slot = 0; slot < StatusField.SLOT_COUNT; slot++) {
+        Test.assertMessage(s.getStatusField(slot) instanceof Lang.Number,
+            "status field " + slot + " is not a Number");
+    }
 
     return true;
 }
@@ -82,6 +90,66 @@ function testSettingsRejectsUnknownPressureUnit(logger as Test.Logger) as Lang.B
     } finally {
         Properties.setValue("PressureUnit", original);
     }
+
+    return true;
+}
+
+//! A field id the app does not know — a cell configured by a newer version of
+//! the settings page — must fall back to that slot's default rather than
+//! reaching the draw path and selecting no icon at all.
+(:test)
+function testSettingsRejectsUnknownStatusField(logger as Test.Logger) as Lang.Boolean {
+    var s = new AppSettings();
+    var original = Properties.getValue("StatusFieldMiddle");
+    var garbage = [StatusField.FIELD_COUNT, 99, -1];
+
+    try {
+        for (var i = 0; i < garbage.size(); i++) {
+            Properties.setValue("StatusFieldMiddle", garbage[i]);
+            s.load();
+            Test.assertEqual(s.getStatusField(1), StatusField.FIELD_STEPS);
+        }
+
+        // And a value it does know still comes through.
+        Properties.setValue("StatusFieldMiddle", StatusField.FIELD_FLOORS);
+        s.load();
+        Test.assertEqual(s.getStatusField(1), StatusField.FIELD_FLOORS);
+    } finally {
+        Properties.setValue("StatusFieldMiddle", original);
+    }
+
+    return true;
+}
+
+//! Every selectable field survives the round trip through the store, so the
+//! settings page cannot offer an entry the face then ignores.
+(:test)
+function testSettingsAcceptsEveryStatusField(logger as Test.Logger) as Lang.Boolean {
+    var s = new AppSettings();
+    var original = Properties.getValue("StatusFieldLeft");
+
+    try {
+        for (var field = 0; field < StatusField.FIELD_COUNT; field++) {
+            Properties.setValue("StatusFieldLeft", field);
+            s.load();
+            Test.assertEqual(s.getStatusField(0), field);
+        }
+    } finally {
+        Properties.setValue("StatusFieldLeft", original);
+    }
+
+    return true;
+}
+
+//! getStatusField() is called from the draw path, so a slot outside the row
+//! has to read as an empty cell rather than throw out of onUpdate().
+(:test)
+function testSettingsStatusFieldSlotRange(logger as Test.Logger) as Lang.Boolean {
+    var s = new AppSettings();
+
+    Test.assertEqual(s.getStatusField(-1), StatusField.FIELD_NONE);
+    Test.assertEqual(s.getStatusField(StatusField.SLOT_COUNT), StatusField.FIELD_NONE);
+    Test.assertEqual(s.getStatusField(1000), StatusField.FIELD_NONE);
 
     return true;
 }

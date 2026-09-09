@@ -1,3 +1,4 @@
+using Toybox.Application.Properties;
 using Toybox.Application.Storage;
 using Toybox.Graphics;
 using Toybox.Lang;
@@ -33,6 +34,24 @@ module ViewTestFixture {
             data[i * 2 + 1] = 101300.0 + (totalPa * i / (count - 1).toFloat());
         }
         Storage.setValue("PressureSamples", data as Lang.Array<Storage.ValueType>);
+    }
+
+    //! Property keys of the status row cells, left to right. The view reads
+    //! these through AppSettings, which is the only way in from a test.
+    const STATUS_KEYS = ["StatusFieldLeft", "StatusFieldMiddle", "StatusFieldRight"];
+
+    //! Points every cell of the status row at the same field.
+    function setStatusFields(field as Lang.Number) as Void {
+        for (var slot = 0; slot < STATUS_KEYS.size(); slot++) {
+            Properties.setValue(STATUS_KEYS[slot], field);
+        }
+    }
+
+    //! Puts the status row back the way properties.xml left it.
+    function restoreStatusFields() as Void {
+        Properties.setValue(STATUS_KEYS[0], StatusField.FIELD_HEART_RATE);
+        Properties.setValue(STATUS_KEYS[1], StatusField.FIELD_STEPS);
+        Properties.setValue(STATUS_KEYS[2], StatusField.FIELD_BATTERY);
     }
 
     //! An off-screen Dc the size of the real screen, so the layout maths runs
@@ -181,6 +200,61 @@ function testViewPersistsBuffer(logger as Test.Logger) as Lang.Boolean {
         Test.assertMessage(restored.getSpanSeconds() >= 20000,
             "restored buffer lost its span, " + restored.getSpanSeconds() + " s");
     } finally {
+        Storage.deleteValue("PressureSamples");
+    }
+
+    return true;
+}
+
+//! Each status field has its own icon and its own value lookup, several of
+//! which can come back null on a device that does not track them. Every one of
+//! them has to draw.
+(:test)
+function testViewRendersEveryStatusField(logger as Test.Logger) as Lang.Boolean {
+    var dc = ViewTestFixture.createDc();
+
+    try {
+        ViewTestFixture.seedPressureHistory(-300.0, 24);
+
+        for (var field = 0; field < StatusField.FIELD_COUNT; field++) {
+            ViewTestFixture.setStatusFields(field);
+
+            var view = new BaroBuddyView();
+            view.onLayout(dc);
+            view.onUpdate(dc);
+
+            // And again in low power, which is where the face spends its life.
+            view.onEnterSleep();
+            view.onUpdate(dc);
+        }
+    } finally {
+        ViewTestFixture.restoreStatusFields();
+        Storage.deleteValue("PressureSamples");
+    }
+
+    return true;
+}
+
+//! Every cell switched off leaves the row with no width to divide, which is a
+//! division by zero waiting to happen.
+(:test)
+function testViewRendersWithEmptyStatusRow(logger as Test.Logger) as Lang.Boolean {
+    var dc = ViewTestFixture.createDc();
+
+    try {
+        ViewTestFixture.seedPressureHistory(-300.0, 24);
+        ViewTestFixture.setStatusFields(StatusField.FIELD_NONE);
+
+        var view = new BaroBuddyView();
+        view.onLayout(dc);
+        view.onUpdate(dc);
+
+        // One cell back on: the row has to survive both edges of the count.
+        Properties.setValue(ViewTestFixture.STATUS_KEYS[2], StatusField.FIELD_CALORIES);
+        view.onSettingsChanged();
+        view.onUpdate(dc);
+    } finally {
+        ViewTestFixture.restoreStatusFields();
         Storage.deleteValue("PressureSamples");
     }
 

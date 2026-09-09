@@ -24,17 +24,20 @@ Initial development. Nothing has been released yet.
   wear.
 - Pressure graph of the recent trace, replaced by the storm banner while an
   alert is latched.
-- Status row with heart rate, step count and battery level.
+- Status row of three configurable cells, each one selectable between heart
+  rate, steps, battery, calories, distance, floors climbed, notifications and
+  off. Cells set to off are dropped and the rest spread over the whole row.
 - Seconds redrawn through `onPartialUpdate()` with a clip region, so the
   low-power path stays inside the power budget.
 - Persistence of the pressure buffer to `Application.Storage`, written every
   fourth retained sample to limit flash wear, and discarded on restore if it is
   more than six hours old.
-- Settings for units (hPa / inHg / mmHg), seconds, graph, heart rate and the
-  storm banner, with validation of out-of-range values from the property store.
-- 54 unit and render tests, including off-screen `BufferedBitmap` smoke tests
-  covering every forecast state, the empty first-run buffer and a full
-  sleep/wake cycle.
+- Settings for units (hPa / inHg / mmHg), seconds, graph, the storm banner and
+  the three status row cells, with validation of out-of-range values from the
+  property store.
+- 59 unit and render tests, including off-screen `BufferedBitmap` smoke tests
+  covering every forecast state, every status field, the empty first-run
+  buffer and a full sleep/wake cycle.
 - Launcher icon generator for both required icon sizes.
 
 ### Notes

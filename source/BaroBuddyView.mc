@@ -90,9 +90,11 @@ class BaroBuddyView extends WatchUi.WatchFace {
     // Cached settings, refreshed by _applySettings().
     private var _showSeconds as Lang.Boolean;
     private var _showGraph as Lang.Boolean;
-    private var _showHeartRate as Lang.Boolean;
     private var _stormAlertEnabled as Lang.Boolean;
     private var _pressureUnit as Lang.Number;
+    //! What each cell of the status row shows, left to right. One of the
+    //! StatusField.FIELD_* ids per slot.
+    private var _statusFields as Lang.Array<Lang.Number>;
 
     // Layout, all computed in onLayout().
     private var _centerX as Lang.Number;
@@ -139,9 +141,9 @@ class BaroBuddyView extends WatchUi.WatchFace {
 
         _showSeconds = _settings.getShowSeconds();
         _showGraph = _settings.getShowGraph();
-        _showHeartRate = _settings.getShowHeartRate();
         _stormAlertEnabled = _settings.getStormAlert();
         _pressureUnit = _settings.getPressureUnit();
+        _statusFields = _readStatusFields();
 
         _centerX = 0;
         _iconX = 0;
@@ -718,34 +720,46 @@ class BaroBuddyView extends WatchUi.WatchFace {
 
     // --- Status row ---------------------------------------------------------
 
-    //! Heart rate, steps and battery across the bottom.
+    //! Up to three user-chosen fields across the bottom.
     //!
     //! The cells are laid out over _statusW rather than over the full screen
     //! width: at this height a round display is only about two thirds as wide
     //! as it is at the centre, and thirds of 240 px would fall off the glass.
+    //!
+    //! Cells set to FIELD_NONE are not drawn and take no width either, so the
+    //! remaining ones spread across the whole row instead of leaving a hole.
     private function _drawStatusRow(dc as Graphics.Dc) as Void {
-        var cells = _showHeartRate ? 3 : 2;
-        var cellW = _statusW / cells;
-        var left = _centerX - (_statusW / 2);
-        var index = 0;
-
-        // What is left for the value once the icon and its gap are taken out.
-        var textW = cellW - _statusIconSize - STATUS_GAP;
-
-        if (_showHeartRate) {
-            _drawStatusCell(dc, left + (cellW / 2), COLOR_HEART, COLOR_STATUS,
-                :heart, _readHeartRate());
-            index++;
+        var cells = _statusCellCount();
+        if (cells == 0) {
+            return;
         }
 
-        _drawStatusCell(dc, left + (cellW / 2) + (index * cellW), COLOR_STATUS, COLOR_STATUS,
-            :steps, _formatSteps(dc, textW));
-        index++;
+        var cellW = _statusW / cells;
+        var left = _centerX - (_statusW / 2);
+        // What is left for the value once the icon and its gap are taken out.
+        var textW = cellW - _statusIconSize - STATUS_GAP;
+        var index = 0;
 
-        var battery = System.getSystemStats().battery.toNumber();
-        var batteryColor = battery <= BATTERY_LOW_PCT ? COLOR_BATTERY_LOW : COLOR_STATUS;
-        _drawStatusCell(dc, left + (cellW / 2) + (index * cellW), batteryColor, COLOR_STATUS,
-            :battery, _fit(dc, battery.format("%d") + "%", battery.format("%d"), textW));
+        for (var slot = 0; slot < _statusFields.size(); slot++) {
+            var field = _statusFields[slot];
+            if (field == StatusField.FIELD_NONE) {
+                continue;
+            }
+            _drawStatusCell(dc, left + (cellW / 2) + (index * cellW), field,
+                _statusValue(dc, field, textW));
+            index++;
+        }
+    }
+
+    //! How many of the three cells are actually shown.
+    private function _statusCellCount() as Lang.Number {
+        var count = 0;
+        for (var slot = 0; slot < _statusFields.size(); slot++) {
+            if (_statusFields[slot] != StatusField.FIELD_NONE) {
+                count++;
+            }
+        }
+        return count;
     }
 
     //! Returns `preferred` when it fits `maxW`, otherwise `fallback`.
@@ -763,25 +777,81 @@ class BaroBuddyView extends WatchUi.WatchFace {
 
     //! One icon plus value, centred as a group on cellCx.
     private function _drawStatusCell(dc as Graphics.Dc, cellCx as Lang.Number,
-                                     iconColor as Lang.Number, textColor as Lang.Number,
-                                     icon as Lang.Symbol, text as Lang.String) as Void {
+                                     field as Lang.Number, text as Lang.String) as Void {
         var textW = dc.getTextWidthInPixels(text, FONT_STATUS);
         var startX = cellCx - ((_statusIconSize + STATUS_GAP + textW) / 2);
         var iconCx = startX + (_statusIconSize / 2);
         var iconCy = _statusY + (_statusH / 2);
 
-        dc.setColor(iconColor, Graphics.COLOR_TRANSPARENT);
-        if (icon == :heart) {
-            _drawHeartIcon(dc, iconCx, iconCy, _statusIconSize);
-        } else if (icon == :steps) {
-            _drawStepsIcon(dc, iconCx, iconCy, _statusIconSize);
-        } else {
-            _drawBatteryIcon(dc, iconCx, iconCy, _statusIconSize);
-        }
+        dc.setColor(_statusIconColor(field), Graphics.COLOR_TRANSPARENT);
+        _drawStatusIcon(dc, field, iconCx, iconCy, _statusIconSize);
 
-        dc.setColor(textColor, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(COLOR_STATUS, Graphics.COLOR_TRANSPARENT);
         dc.drawText(startX + _statusIconSize + STATUS_GAP, _statusY, FONT_STATUS, text,
             Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    //! The value string for a field, already shortened to fit `maxW` where the
+    //! field has a shorter form to fall back on.
+    private function _statusValue(dc as Graphics.Dc, field as Lang.Number,
+                                  maxW as Lang.Number) as Lang.String {
+        switch (field) {
+            case StatusField.FIELD_HEART_RATE:
+                return _readHeartRate();
+            case StatusField.FIELD_STEPS:
+                return _formatSteps(dc, maxW);
+            case StatusField.FIELD_BATTERY:
+                return _formatBattery(dc, maxW);
+            case StatusField.FIELD_CALORIES:
+                return _formatCalories(dc, maxW);
+            case StatusField.FIELD_DISTANCE:
+                return _formatDistance(dc, maxW);
+            case StatusField.FIELD_FLOORS:
+                return _formatFloors();
+            default:
+                return _formatNotifications();
+        }
+    }
+
+    //! Only two fields are ever coloured: a heart is red because that is what
+    //! a heart is, and a battery turns red when it is nearly out. Colouring
+    //! the rest would turn the row into a fruit salad.
+    private function _statusIconColor(field as Lang.Number) as Lang.Number {
+        if (field == StatusField.FIELD_HEART_RATE) {
+            return COLOR_HEART;
+        }
+        if (field == StatusField.FIELD_BATTERY && _batteryPercent() <= BATTERY_LOW_PCT) {
+            return COLOR_BATTERY_LOW;
+        }
+        return COLOR_STATUS;
+    }
+
+    private function _drawStatusIcon(dc as Graphics.Dc, field as Lang.Number,
+                                     cx as Lang.Number, cy as Lang.Number,
+                                     size as Lang.Number) as Void {
+        switch (field) {
+            case StatusField.FIELD_HEART_RATE:
+                _drawHeartIcon(dc, cx, cy, size);
+                break;
+            case StatusField.FIELD_STEPS:
+                _drawStepsIcon(dc, cx, cy, size);
+                break;
+            case StatusField.FIELD_BATTERY:
+                _drawBatteryIcon(dc, cx, cy, size);
+                break;
+            case StatusField.FIELD_CALORIES:
+                _drawFlameIcon(dc, cx, cy, size);
+                break;
+            case StatusField.FIELD_DISTANCE:
+                _drawDistanceIcon(dc, cx, cy, size);
+                break;
+            case StatusField.FIELD_FLOORS:
+                _drawStairsIcon(dc, cx, cy, size);
+                break;
+            default:
+                _drawBellIcon(dc, cx, cy, size);
+                break;
+        }
     }
 
     //! Current heart rate, or "--" when the optical sensor has nothing.
@@ -839,6 +909,86 @@ class BaroBuddyView extends WatchUi.WatchFace {
         return _fit(dc, exact, short, maxW);
     }
 
+    //! Battery charge, losing the per cent sign before it loses a digit.
+    private function _formatBattery(dc as Graphics.Dc, maxW as Lang.Number) as Lang.String {
+        var battery = _batteryPercent().format("%d");
+        return _fit(dc, battery + "%", battery, maxW);
+    }
+
+    //! Battery charge as a whole percentage.
+    private function _batteryPercent() as Lang.Number {
+        return System.getSystemStats().battery.toNumber();
+    }
+
+    //! Calories burned today, abbreviated only when the exact figure will not
+    //! fit. This is the total, active plus resting, as Garmin reports it.
+    private function _formatCalories(dc as Graphics.Dc, maxW as Lang.Number) as Lang.String {
+        if (!(Toybox has :ActivityMonitor)) {
+            return "--";
+        }
+        var calories = ActivityMonitor.getInfo().calories;
+        if (calories == null) {
+            return "--";
+        }
+
+        var exact = calories.format("%d");
+        if (calories < 1000) {
+            return exact;
+        }
+        return _fit(dc, exact, (calories / 1000.0).format("%.1f") + "k", maxW);
+    }
+
+    //! Distance covered today, in whatever unit the watch is set to.
+    //!
+    //! The suffix is dropped before the digits are: a bare number beside the
+    //! icon still reads as a distance, a truncated one reads as a wrong one.
+    private function _formatDistance(dc as Graphics.Dc, maxW as Lang.Number) as Lang.String {
+        if (!(Toybox has :ActivityMonitor)) {
+            return "--";
+        }
+        // ActivityMonitor reports distance in centimetres.
+        var centimetres = ActivityMonitor.getInfo().distance;
+        if (centimetres == null) {
+            return "--";
+        }
+
+        var metric = System.getDeviceSettings().distanceUnits == System.UNIT_METRIC;
+        var value = centimetres / (metric ? 100000.0 : 160934.4);
+        var digits = value.format("%.1f");
+
+        return _fit(dc, digits + (metric ? "km" : "mi"), digits, maxW);
+    }
+
+    //! Floors climbed today. Barometric, like the rest of the face, so on a
+    //! device without an altimeter there is simply nothing to show.
+    private function _formatFloors() as Lang.String {
+        if (!(Toybox has :ActivityMonitor)) {
+            return "--";
+        }
+        var info = ActivityMonitor.getInfo();
+        if (!(info has :floorsClimbed)) {
+            return "--";
+        }
+        var floors = info.floorsClimbed;
+        if (floors == null) {
+            return "--";
+        }
+        return floors.format("%d");
+    }
+
+    //! Notifications waiting on the phone. Zero when the phone is out of
+    //! range, which is exactly the situation this face is built for, so the
+    //! count doubles as a hint that the connection has gone.
+    private function _formatNotifications() as Lang.String {
+        var settings = System.getDeviceSettings();
+        if (!(settings has :notificationCount)) {
+            return "--";
+        }
+        // Declared non-nullable, unlike most of DeviceSettings, so the has
+        // check above is the whole guard.
+        return settings.notificationCount.format("%d");
+    }
+
     //! Two lobes and a point. Drawn rather than loaded so the status row costs
     //! no bitmap memory.
     private function _drawHeartIcon(dc as Graphics.Dc, cx as Lang.Number, cy as Lang.Number,
@@ -891,7 +1041,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
         // Terminal nub on the right hand end.
         dc.fillRectangle(x + bodyW, y + (bodyH / 4), 2, bodyH / 2);
 
-        var level = System.getSystemStats().battery.toNumber();
+        var level = _batteryPercent();
         if (level < 0) {
             level = 0;
         } else if (level > 100) {
@@ -901,6 +1051,84 @@ class BaroBuddyView extends WatchUi.WatchFace {
         if (fillW > 0) {
             dc.fillRectangle(x + 1, y + 1, fillW, bodyH - 2);
         }
+    }
+
+    //! A flame: a round base with a point on top.
+    private function _drawFlameIcon(dc as Graphics.Dc, cx as Lang.Number, cy as Lang.Number,
+                                    size as Lang.Number) as Void {
+        var half = size / 2;
+        var r = size * 3 / 10;
+        if (r < 1) {
+            r = 1;
+        }
+        var baseY = cy + half - r;
+
+        dc.fillCircle(cx, baseY, r);
+        dc.fillPolygon([
+            [cx, cy - half],
+            [cx + r, baseY],
+            [cx - r, baseY]
+        ]);
+    }
+
+    //! A double headed arrow, read as a measured span rather than a direction.
+    private function _drawDistanceIcon(dc as Graphics.Dc, cx as Lang.Number, cy as Lang.Number,
+                                       size as Lang.Number) as Void {
+        var half = size / 2;
+        var head = size / 3;
+        if (head < 2) {
+            head = 2;
+        }
+
+        dc.fillRectangle(cx - half, cy - 1, size, 2);
+        dc.fillPolygon([
+            [cx - half, cy],
+            [cx - half + head, cy - head],
+            [cx - half + head, cy + head]
+        ]);
+        dc.fillPolygon([
+            [cx + half, cy],
+            [cx + half - head, cy - head],
+            [cx + half - head, cy + head]
+        ]);
+    }
+
+    //! Three steps rising to the right.
+    private function _drawStairsIcon(dc as Graphics.Dc, cx as Lang.Number, cy as Lang.Number,
+                                     size as Lang.Number) as Void {
+        var step = size / 3;
+        if (step < 2) {
+            step = 2;
+        }
+        var x = cx - ((step * 3) / 2);
+        var baseY = cy + ((step * 3) / 2);
+
+        for (var i = 0; i < 3; i++) {
+            var h = (i + 1) * step;
+            dc.fillRectangle(x + (i * step), baseY - h, step, h);
+        }
+    }
+
+    //! A bell: a dome on a rim, with the clapper below it.
+    private function _drawBellIcon(dc as Graphics.Dc, cx as Lang.Number, cy as Lang.Number,
+                                   size as Lang.Number) as Void {
+        var half = size / 2;
+        var bodyW = size * 6 / 10;
+        if (bodyW < 3) {
+            bodyW = 3;
+        }
+        var bodyH = size * 6 / 10;
+        if (bodyH < 3) {
+            bodyH = 3;
+        }
+        // The rim overhangs the dome by two pixels a side. Any more and at
+        // thirteen pixels the whole thing reads as a mushroom.
+        var rimW = bodyW + 4;
+        var rimY = cy - half + bodyH;
+
+        dc.fillRoundedRectangle(cx - (bodyW / 2), cy - half, bodyW, bodyH, bodyW / 2);
+        dc.fillRectangle(cx - (rimW / 2), rimY, rimW, 2);
+        dc.fillRectangle(cx - 1, rimY + 3, 2, 2);
     }
 
     // --- Weather icon -------------------------------------------------------
@@ -1034,14 +1262,24 @@ class BaroBuddyView extends WatchUi.WatchFace {
         _settings.load();
         _showSeconds = _settings.getShowSeconds();
         _showGraph = _settings.getShowGraph();
-        _showHeartRate = _settings.getShowHeartRate();
         _stormAlertEnabled = _settings.getStormAlert();
         _pressureUnit = _settings.getPressureUnit();
+        _statusFields = _readStatusFields();
 
         var groupW = _showSeconds ? _timeW + _secondsW : _timeW;
         var left = _centerX - (groupW / 2);
         _timeX = left + (_timeW / 2);
         _secondsX = left + _timeW;
+    }
+
+    //! Snapshots the three status row choices into an array the draw path can
+    //! walk, rather than asking the settings object once per cell per redraw.
+    private function _readStatusFields() as Lang.Array<Lang.Number> {
+        var fields = new Lang.Array<Lang.Number>[StatusField.SLOT_COUNT];
+        for (var slot = 0; slot < StatusField.SLOT_COUNT; slot++) {
+            fields[slot] = _settings.getStatusField(slot);
+        }
+        return fields;
     }
 
     //! Vertical distance from the screen centre at which a horizontal run of
@@ -1078,25 +1316,33 @@ class BaroBuddyView extends WatchUi.WatchFace {
             System.println("layout WARNING: status row off screen");
         }
 
-        // Worst case the status row has to hold once the adaptive fallbacks in
-        // _formatSteps() and _drawStatusRow() have kicked in: a three digit
-        // heart rate, an abbreviated step count and a bare battery percentage.
-        var cellW = _statusW / (_showHeartRate ? 3 : 2);
-        var hrW = dc.getTextWidthInPixels("188", FONT_STATUS);
-        var stepsW = dc.getTextWidthInPixels("12k", FONT_STATUS);
-        var battW = dc.getTextWidthInPixels("100", FONT_STATUS);
-        var widest = hrW;
-        if (stepsW > widest) { widest = stepsW; }
-        if (battW > widest) { widest = battW; }
-        widest += _statusIconSize + STATUS_GAP;
+        // Worst case each field has to hold once its adaptive fallback has
+        // kicked in: a three digit heart rate, an abbreviated step count, a
+        // bare battery percentage. Indexed by StatusField.FIELD_*.
+        var worstCase = ["", "188", "12k", "100", "9.9k", "26.2", "88", "88"];
+        var cells = _statusCellCount();
+        if (cells > 0) {
+            var cellW = _statusW / cells;
+            var widest = 0;
+            for (var slot = 0; slot < _statusFields.size(); slot++) {
+                var field = _statusFields[slot];
+                if (field == StatusField.FIELD_NONE) {
+                    continue;
+                }
+                var sampleW = dc.getTextWidthInPixels(worstCase[field], FONT_STATUS);
+                if (sampleW > widest) { widest = sampleW; }
+            }
+            widest += _statusIconSize + STATUS_GAP;
 
-        System.println("layout status cell=" + cellW + " widest=" + widest
-            + " icon=" + _statusIconSize + " hr=" + hrW + " steps=" + stepsW
-            + " batt=" + battW
-            + " exactSteps=" + dc.getTextWidthInPixels("88888", FONT_STATUS)
-            + " exactBatt=" + dc.getTextWidthInPixels("100%", FONT_STATUS));
-        if (widest > cellW) {
-            System.println("layout WARNING: status cells overflow by " + (widest - cellW));
+            System.println("layout status cells=" + cells + " cell=" + cellW
+                + " fields=" + _statusFields[0] + "," + _statusFields[1]
+                + "," + _statusFields[2]
+                + " widest=" + widest + " icon=" + _statusIconSize
+                + " exactSteps=" + dc.getTextWidthInPixels("88888", FONT_STATUS)
+                + " exactBatt=" + dc.getTextWidthInPixels("100%", FONT_STATUS));
+            if (widest > cellW) {
+                System.println("layout WARNING: status cells overflow by " + (widest - cellW));
+            }
         }
 
         // The pressure row is the widest single string on the face.

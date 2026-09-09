@@ -15,10 +15,22 @@
     <!-- Settings, see resources/settings/settings.xml -->
     <string id="SettingShowSeconds">Show Seconds</string>
     <string id="SettingShowGraph">Show Pressure Graph</string>
-    <string id="SettingShowHeartRate">Show Heart Rate</string>
     <string id="SettingStormAlert">Storm Warning Banner</string>
     <string id="SettingPressureUnit">Pressure Unit</string>
     <string id="UnitHpa">hPa</string>
     <string id="UnitInHg">inHg</string>
     <string id="UnitMmHg">mmHg</string>
+
+    <!-- Status row, see StatusField -->
+    <string id="SettingStatusFieldLeft">Bottom Left Field</string>
+    <string id="SettingStatusFieldMiddle">Bottom Middle Field</string>
+    <string id="SettingStatusFieldRight">Bottom Right Field</string>
+    <string id="FieldNone">Off</string>
+    <string id="FieldHeartRate">Heart Rate</string>
+    <string id="FieldSteps">Steps</string>
+    <string id="FieldBattery">Battery</string>
+    <string id="FieldCalories">Calories</string>
+    <string id="FieldDistance">Distance</string>
+    <string id="FieldFloors">Floors Climbed</string>
+    <string id="FieldNotifications">Notifications</string>
 </strings>
