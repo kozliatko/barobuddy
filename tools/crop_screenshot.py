@@ -17,11 +17,16 @@ white watch on a white sheet.
 
 The calibration and the screenshot have to come from the same simulator window
 position, so capture them back to back without moving the window.
+
+A fifth argument of "nearest" scales the crop by pixel doubling instead of
+Lanczos, which keeps the face crisp when the output is an exact multiple of the
+device resolution.
 """
 import sys
 from PIL import Image, ImageDraw
 
 cal, shot, dst, out_size = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
+resample = Image.NEAREST if len(sys.argv) > 5 and sys.argv[5] == "nearest" else Image.LANCZOS
 
 im = Image.open(cal).convert('RGB')
 px = im.load()
@@ -52,5 +57,5 @@ mask = Image.new('L', (size, size), 0)
 ImageDraw.Draw(mask).ellipse([inset, inset, size - 1 - inset, size - 1 - inset], fill=255)
 out = Image.new('RGB', (size, size), (0, 0, 0))
 out.paste(crop, (0, 0), mask)
-out.resize((out_size, out_size), Image.LANCZOS).save(dst)
+out.resize((out_size, out_size), resample).save(dst)
 print("%s display %dpx at %s" % (dst, size, box))

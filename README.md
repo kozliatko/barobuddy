@@ -22,9 +22,9 @@ forecast is computed entirely on the watch from its own barometer.
 
 ![BaroBuddy on a Forerunner 935](docs/screenshot.png)
 
-*Simulator screenshot. The simulated barometer is a random walk, which is why
-the storm banner appears next to a "clearing" icon and why the pressure reads
-864 hPa — see [Notes on the reading](#notes-on-the-reading).*
+*Simulator screenshot of a Forerunner 935, cropped to the display. The
+simulated barometer is a random walk, which is why the pressure reads 864 hPa —
+see [Notes on the reading](#notes-on-the-reading).*
 
 ## Why a barometer, when the phone already has weather
 
