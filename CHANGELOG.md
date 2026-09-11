@@ -11,9 +11,9 @@ Initial development. Nothing has been released yet.
 
 ### Added
 
-- Barometric watch face for eight Connect IQ devices: Forerunner 935 and 965,
-  fēnix 5, 5S and 5X, fēnix Chronos, D2 Charlie, and the fēnix 7X profile that
-  also covers the Enduro 2, tactix 7 and quatix 7X Solar.
+- Barometric watch face for nine Connect IQ devices: Forerunner 935 and 965,
+  vívoactive 3, fēnix 5, 5S and 5X, fēnix Chronos, D2 Charlie, and the fēnix 7X
+  profile that also covers the Enduro 2, tactix 7 and quatix 7X Solar.
 - Always-on screen for panels that report `requiresBurnInProtection`, which on
   the supported devices means the Forerunner 965: partial updates are given up,
   the sleeping face is reduced to the time, the reading and any storm warning

@@ -4,7 +4,7 @@
 [![Platform: Connect IQ](https://img.shields.io/badge/platform-Connect%20IQ-007cc3)](https://developer.garmin.com/connect-iq/overview/)
 [![API 3.0.0](https://img.shields.io/badge/API-3.0.0-007cc3)](https://developer.garmin.com/connect-iq/api-docs/)
 [![Language: Monkey C](https://img.shields.io/badge/language-Monkey%20C-6f4e9c)](https://developer.garmin.com/connect-iq/monkey-c/)
-[![Devices: 8](https://img.shields.io/badge/devices-8-informational)](#supported-devices)
+[![Devices: 9](https://img.shields.io/badge/devices-9-informational)](#supported-devices)
 [![Unit tests: 62](https://img.shields.io/badge/unit%20tests-62-brightgreen)](#running-the-tests)
 [![Type check: strict](https://img.shields.io/badge/monkeyc%20--l%203-clean-brightgreen)](#building-from-source)
 
@@ -114,7 +114,7 @@ Nothing is drawn at fixed pixel coordinates. The display is round, so a layout
 designed for a 240×240 rectangle would put its corners off screen. Every
 position is stacked top to bottom in `onLayout()` from the real font metrics
 and kept inside the circle, which is also what lets the same source render on
-eight devices with four different screen sizes.
+nine devices with four different screen sizes.
 
 | Row | Content |
 | --- | --- |
@@ -246,6 +246,7 @@ independent rules on one barometer.
 | Forerunner 965 | 454×454 AMOLED | 65×65 |
 | Enduro 2, fēnix 7X, tactix 7, quatix 7X Solar | 280×280 | 40×40 |
 | Forerunner 935 | 240×240 | 40×40 |
+| vívoactive 3 | 240×240 | 40×33 |
 | fēnix 5 | 240×240 | 40×40 |
 | fēnix 5X | 240×240 | 40×40 |
 | D2 Charlie | 240×240 | 40×40 |
@@ -325,7 +326,7 @@ monkeyc -f monkey.jungle -d fr935 -o bin/BaroBuddy-fr935.prg \
 ```
 
 - `-l 3` is the strictest type checker. The project builds clean at that level
-  with no warnings, in both debug and release, on all eight devices.
+  with no warnings, in both debug and release, on all nine devices.
 - `-r` produces a release build (about 24 kB per device).
 - `-e` together with an `.iq` output produces a store-ready package for all
   devices at once.
@@ -399,6 +400,7 @@ source/
 resources/                Strings, settings, properties, 40x40 launcher icon
 resources-round-218x218/  36x36 launcher icon for the smaller screens
 resources-round-454x454/  65x65 launcher icon for the Forerunner 965
+resources-vivoactive3/    40x33 launcher icon, the one target that is not square
 tools/                    Launcher icon generator, screenshot cropper
 docs/screenshots/         Per-device simulator screenshots used in this README
 docs/store/               Native resolution screenshots for the Store listing
