@@ -17,6 +17,7 @@ function testSettingsDefaults(logger as Test.Logger) as Lang.Boolean {
     Test.assertMessage(s.getShowSeconds(), "ShowSeconds should default to true");
     Test.assertMessage(s.getShowGraph(), "ShowPressureGraph should default to true");
     Test.assertMessage(s.getStormAlert(), "StormAlert should default to true");
+    Test.assertEqual(s.getStormThresholdHpa(), 3);
     Test.assertEqual(s.getPressureUnit(), PressureFormatter.UNIT_HPA);
 
     // The default row is the one the face shipped with.
@@ -35,6 +36,8 @@ function testSettingsTypes(logger as Test.Logger) as Lang.Boolean {
     Test.assertMessage(s.getShowGraph() instanceof Lang.Boolean, "ShowGraph is not a Boolean");
     Test.assertMessage(s.getStormAlert() instanceof Lang.Boolean, "StormAlert is not a Boolean");
     Test.assertMessage(s.getPressureUnit() instanceof Lang.Number, "PressureUnit is not a Number");
+    Test.assertMessage(s.getStormThresholdHpa() instanceof Lang.Number,
+        "StormThresholdHpa is not a Number");
 
     for (var slot = 0; slot < StatusField.SLOT_COUNT; slot++) {
         Test.assertMessage(s.getStatusField(slot) instanceof Lang.Number,
@@ -171,6 +174,36 @@ function testSettingsAlwaysYieldsAValidUnit(logger as Test.Logger) as Lang.Boole
         }
     } finally {
         Properties.setValue("PressureUnit", original);
+    }
+
+    return true;
+}
+
+//! The storm threshold comes back from the phone as a number the settings page
+//! offered, but a corrupt or newer property must not be allowed to raise the
+//! warning at every breath of wind or silence it altogether.
+(:test)
+function testSettingsClampsStormThreshold(logger as Test.Logger) as Lang.Boolean {
+    var s = new AppSettings();
+    var original = Properties.getValue("StormThresholdHpa");
+
+    try {
+        Properties.setValue("StormThresholdHpa", 0);
+        s.load();
+        Test.assertEqual(s.getStormThresholdHpa(), 3);
+
+        Properties.setValue("StormThresholdHpa", 99);
+        s.load();
+        Test.assertEqual(s.getStormThresholdHpa(), 3);
+
+        // Everything the settings page actually offers has to survive.
+        for (var hpa = 2; hpa <= 6; hpa++) {
+            Properties.setValue("StormThresholdHpa", hpa);
+            s.load();
+            Test.assertEqual(s.getStormThresholdHpa(), hpa);
+        }
+    } finally {
+        Properties.setValue("StormThresholdHpa", original);
     }
 
     return true;

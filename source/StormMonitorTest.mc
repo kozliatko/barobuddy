@@ -7,9 +7,9 @@ using Toybox.Test;
 //! shipping build, so a shared helper or a file-scope const here would be dead
 //! weight in the 124 kB watch face budget.
 //!
-//! The thresholds mirror the ones BaroBuddyView passes in (1.5 / 1.0 hPa,
-//! 3 hour re-arm), but the monitor takes them as parameters, so these tests
-//! pin the behaviour and not the tuning.
+//! The thresholds mirror the ones BaroBuddyView derives from the default
+//! setting (1.5 / 1.0 hPa, 3 hour re-arm), but the monitor takes them as
+//! parameters, so these tests pin the behaviour and not the tuning.
 
 (:test)
 function testStormStartsIdle(logger as Test.Logger) as Lang.Boolean {
@@ -180,6 +180,31 @@ function testStormFromPressureBuffer(logger as Test.Logger) as Lang.Boolean {
     var calmMonitor = new StormMonitor(1.5, 1.0, 10800);
     Test.assertMessage(!calmMonitor.update(calm.getDropHpa(windowS, minSamples), last),
         "a 0.6 hPa fall over 3 h raised a storm warning");
+
+    return true;
+}
+
+//! Retuning from the settings page must keep the state: a warning that is up
+//! stays up, the re-arm timer keeps running, and the next reading is judged
+//! against the new numbers.
+(:test)
+function testStormRetuneKeepsState(logger as Test.Logger) as Lang.Boolean {
+    var m = new StormMonitor(1.5, 1.0, 10800);
+    var t0 = 1700000000;
+
+    Test.assertMessage(m.update(2.0, t0), "trigger value did not alert");
+
+    // The user asks for a less sensitive warning than the storm that is
+    // already running: it must clear on the next reading, not latch forever.
+    m.setThresholds(3.0, 2.0);
+    Test.assertMessage(m.isActive(), "retuning dropped the warning on its own");
+    Test.assertMessage(!m.update(1.5, t0 + 900), "clearing the warning alerted");
+    Test.assertMessage(!m.isActive(), "warning survived below the new clear level");
+
+    // And the re-arm timer is still the one from the first alert.
+    Test.assertEqual(m.getLastAlertTime() as Lang.Number, t0);
+    Test.assertMessage(!m.update(3.0, t0 + 1800), "alerted inside the re-arm window");
+    Test.assertMessage(m.isActive(), "monitor did not latch at the new trigger");
 
     return true;
 }

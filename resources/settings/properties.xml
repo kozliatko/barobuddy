@@ -5,6 +5,10 @@
     <property id="ShowPressureGraph" type="boolean">true</property>
     <property id="StormAlert" type="boolean">true</property>
 
+    <!-- Fall in hPa over three hours that raises the warning. Match it to the
+         watch's own Storm Alert setting to have the two agree. -->
+    <property id="StormThresholdHpa" type="number">3</property>
+
     <!-- 0 = hPa, 1 = inHg, 2 = mmHg. See PressureFormatter.UNIT_*. -->
     <property id="PressureUnit" type="number">0</property>
 

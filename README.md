@@ -5,7 +5,7 @@
 [![API 3.0.0](https://img.shields.io/badge/API-3.0.0-007cc3)](https://developer.garmin.com/connect-iq/api-docs/)
 [![Language: Monkey C](https://img.shields.io/badge/language-Monkey%20C-6f4e9c)](https://developer.garmin.com/connect-iq/monkey-c/)
 [![Devices: 8](https://img.shields.io/badge/devices-8-informational)](#supported-devices)
-[![Unit tests: 60](https://img.shields.io/badge/unit%20tests-60-brightgreen)](#running-the-tests)
+[![Unit tests: 62](https://img.shields.io/badge/unit%20tests-62-brightgreen)](#running-the-tests)
 [![Type check: strict](https://img.shields.io/badge/monkeyc%20--l%203-clean-brightgreen)](#building-from-source)
 
 A barometric weather watch face for Garmin Connect IQ devices.
@@ -164,11 +164,23 @@ worse than showing nothing.
 
 The **storm alert is independent of the forecast**. It watches the drop of the
 latest reading below the mean of the last three hours, over at least five
-samples. It latches at 1.5 hPa and clears at 1.0 hPa — the gap is what stops it
-flickering around the threshold — and will not re-latch for another three
-hours. Because the drop is measured against the window mean rather than its
-first sample, a 1.5 hPa trigger corresponds to a real fall of roughly 3 hPa
-across the three hours.
+samples, and will not re-latch for another three hours once it has fired.
+
+Its threshold is a setting, given in the same units as the watch's own Storm
+Alert: hPa of fall over three hours, from 2 (sensitive) to 6 (quiet), with 3 —
+the classic "pressure fell 3 hPa in 3 hours" criterion — as the default. Set it
+to whatever the watch is set to under *Sensors & Accessories → Altimeter →
+Storm Alert* and the banner and the system alert will fire together. Internally
+the setting is halved, because the drop is measured against the window mean
+rather than its first sample, so a 3 hPa setting becomes a 1.5 hPa trigger; the
+warning clears again at two thirds of that, and the gap is what stops it
+flickering around the threshold.
+
+The watch's Storm Alert and BaroBuddy's banner cannot talk to each other —
+Connect IQ exposes no API for the built-in alert — but they read the same
+barometer, so matching the thresholds is enough to keep them in step. A watch
+face is also refused `Toybox.Attention`, so the system alert is the only one of
+the two that can vibrate.
 
 The two measures can disagree: pressure that fell sharply and has begun
 recovering will show a rising trend while the storm is still latched. That is
@@ -237,6 +249,7 @@ Configurable from the Garmin Connect app under the watch face's settings:
 | Show Seconds | on | Seconds beside the time, redrawn by the partial-update path |
 | Show Pressure Graph | on | The pressure trace row |
 | Storm Warning Banner | on | The red storm banner |
+| Storm Threshold | 3 hPa / 3 h | Fall that raises the warning, 2 to 6 hPa over three hours |
 | Pressure Unit | hPa | hPa, inHg or mmHg |
 | Bottom Left Field | Heart Rate | Left cell of the status row |
 | Bottom Middle Field | Steps | Middle cell of the status row |
@@ -244,7 +257,8 @@ Configurable from the Garmin Connect app under the watch face's settings:
 
 An unrecognised value — from a newer settings page than the installed face —
 is clamped back to the default rather than passed on: an unknown unit reads as
-hPa, an unknown status field as whatever that cell shows out of the box.
+hPa, an out-of-range storm threshold as 3 hPa, and an unknown status field as
+whatever that cell shows out of the box.
 
 ## Building from source
 
@@ -287,7 +301,7 @@ monkeyc -f monkey.jungle -d fr935 -o bin/BaroBuddyTest.prg \
 monkeydo bin/BaroBuddyTest.prg fr935 -t
 ```
 
-60 tests covering the buffer arithmetic, the forecast thresholds and their
+62 tests covering the buffer arithmetic, the forecast thresholds and their
 boundaries, the storm hysteresis and re-arm window, the unit conversions, the
 settings validation, the `Application.Storage` round trip, and eight render
 smoke tests that draw the full face into an off-screen `BufferedBitmap`.

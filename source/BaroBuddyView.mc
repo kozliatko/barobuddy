@@ -33,9 +33,12 @@ class BaroBuddyView extends WatchUi.WatchFace {
     //! See StormMonitor for why the trigger is half the drop it detects.
     private const STORM_WINDOW_S = 10800;
     private const STORM_MIN_SAMPLES = 5;
-    private const STORM_TRIGGER_HPA = 1.5;
-    private const STORM_CLEAR_HPA = 1.0;
     private const STORM_REARM_S = 10800;
+
+    //! The warning clears at two thirds of the drop that raised it. The gap is
+    //! what stops the banner flickering while the pressure hovers around the
+    //! threshold the user picked.
+    private const STORM_CLEAR_RATIO = 0.667;
 
     //! Readings older than this say nothing about the weather right now, so
     //! they neither restore from storage nor feed the storm alert.
@@ -158,7 +161,8 @@ class BaroBuddyView extends WatchUi.WatchFace {
 
         _buffer = new PressureBuffer(BUFFER_CAPACITY, BUFFER_MIN_INTERVAL_S);
         _settings = new AppSettings();
-        _storm = new StormMonitor(STORM_TRIGGER_HPA, STORM_CLEAR_HPA, STORM_REARM_S);
+        var trigger = _stormTriggerHpa();
+        _storm = new StormMonitor(trigger, trigger * STORM_CLEAR_RATIO, STORM_REARM_S);
 
         _forecast = WeatherPredictor.FORECAST_STEADY;
         _hasForecast = false;
@@ -517,6 +521,14 @@ class BaroBuddyView extends WatchUi.WatchFace {
     //! thrown permission error rather than a missing symbol, so `Toybox has
     //! :Attention` passes and the face dies on the next line. The warning is
     //! therefore visual only.
+    //! The drop the monitor triggers on, derived from the threshold the user
+    //! set in hPa per three hours. PressureBuffer.getDropHpa() reports the
+    //! distance from the window mean, which for a steady fall is about half
+    //! the fall itself, so the setting is halved on the way in.
+    private function _stormTriggerHpa() as Lang.Float {
+        return _settings.getStormThresholdHpa() / 2.0;
+    }
+
     private function _checkStormAlert() as Void {
         var last = _buffer.getLastTimestamp();
         if (last == null) {
@@ -1372,6 +1384,9 @@ class BaroBuddyView extends WatchUi.WatchFace {
         _stormAlertEnabled = _settings.getStormAlert();
         _pressureUnit = _settings.getPressureUnit();
         _statusFields = _readStatusFields();
+
+        var trigger = _stormTriggerHpa();
+        _storm.setThresholds(trigger, trigger * STORM_CLEAR_RATIO);
 
         var groupW = _showSeconds ? _timeW + _secondsW : _timeW;
         var left = _centerX - (groupW / 2);

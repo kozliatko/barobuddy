@@ -24,7 +24,9 @@ Initial development. Nothing has been released yet.
   hPa per 6 hours.
 - Five-state forecast with icon, coloured trend arrow and text label.
 - Storm alert on a rapid three-hour pressure drop, with hysteresis between the
-  trigger and clear thresholds and a three-hour re-arm window.
+  trigger and clear thresholds and a three-hour re-arm window. Its threshold is
+  configurable from 2 to 6 hPa of fall over three hours — the same scale the
+  watch's built-in Storm Alert uses, so the two can be set to fire together.
 - Priming of the pressure buffer from `SensorHistory` on first draw, so the
   face is useful within minutes of installation rather than after six hours of
   wear.
@@ -41,7 +43,7 @@ Initial development. Nothing has been released yet.
 - Settings for units (hPa / inHg / mmHg), seconds, graph, the storm banner and
   the three status row cells, with validation of out-of-range values from the
   property store.
-- 60 unit and render tests, including off-screen `BufferedBitmap` smoke tests
+- 62 unit and render tests, including off-screen `BufferedBitmap` smoke tests
   covering every forecast state, every status field, the empty first-run
   buffer and a full sleep/wake cycle.
 - Clock font chosen at layout time from the measured height of the candidates,

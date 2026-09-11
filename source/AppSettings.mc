@@ -16,6 +16,7 @@ class AppSettings {
     private const KEY_SHOW_SECONDS = "ShowSeconds";
     private const KEY_SHOW_GRAPH = "ShowPressureGraph";
     private const KEY_STORM_ALERT = "StormAlert";
+    private const KEY_STORM_THRESHOLD = "StormThresholdHpa";
     private const KEY_PRESSURE_UNIT = "PressureUnit";
 
     //! One key per cell of the status row, left to right. Indexed by slot, so
@@ -30,6 +31,15 @@ class AppSettings {
     private const DEFAULT_SHOW_GRAPH = true;
     private const DEFAULT_STORM_ALERT = true;
 
+    //! Storm threshold in hPa of fall over three hours. Three is the classic
+    //! "pressure fell 3 hPa in 3 hours" criterion and matches the middle of
+    //! the range the watch's own Storm Alert offers, so the two can be set to
+    //! agree. The bounds cover that range with a little room either side; a
+    //! value outside them is a corrupt property, not a user choice.
+    private const DEFAULT_STORM_THRESHOLD = 3;
+    private const MIN_STORM_THRESHOLD = 1;
+    private const MAX_STORM_THRESHOLD = 9;
+
     //! Heart rate, steps and battery — the row the face shipped with before
     //! the cells became configurable.
     private const DEFAULT_STATUS_FIELDS = [
@@ -41,6 +51,7 @@ class AppSettings {
     private var _showSeconds as Lang.Boolean;
     private var _showGraph as Lang.Boolean;
     private var _stormAlert as Lang.Boolean;
+    private var _stormThreshold as Lang.Number;
     private var _pressureUnit as Lang.Number;
     private var _statusFields as Lang.Array<Lang.Number>;
 
@@ -48,6 +59,7 @@ class AppSettings {
         _showSeconds = DEFAULT_SHOW_SECONDS;
         _showGraph = DEFAULT_SHOW_GRAPH;
         _stormAlert = DEFAULT_STORM_ALERT;
+        _stormThreshold = DEFAULT_STORM_THRESHOLD;
         _pressureUnit = PressureFormatter.UNIT_HPA;
         _statusFields = new Lang.Array<Lang.Number>[StatusField.SLOT_COUNT];
         load();
@@ -59,6 +71,12 @@ class AppSettings {
         _showSeconds = _readBoolean(KEY_SHOW_SECONDS, DEFAULT_SHOW_SECONDS);
         _showGraph = _readBoolean(KEY_SHOW_GRAPH, DEFAULT_SHOW_GRAPH);
         _stormAlert = _readBoolean(KEY_STORM_ALERT, DEFAULT_STORM_ALERT);
+
+        var threshold = _readNumber(KEY_STORM_THRESHOLD, DEFAULT_STORM_THRESHOLD);
+        if (threshold < MIN_STORM_THRESHOLD || threshold > MAX_STORM_THRESHOLD) {
+            threshold = DEFAULT_STORM_THRESHOLD;
+        }
+        _stormThreshold = threshold;
 
         var unit = _readNumber(KEY_PRESSURE_UNIT, PressureFormatter.UNIT_HPA);
         if (!PressureFormatter.isValidUnit(unit)) {
@@ -86,6 +104,12 @@ class AppSettings {
 
     function getStormAlert() as Lang.Boolean {
         return _stormAlert;
+    }
+
+    //! How far the pressure has to fall over three hours, in hPa, before the
+    //! warning is raised. Always within the supported range.
+    function getStormThresholdHpa() as Lang.Number {
+        return _stormThreshold;
     }
 
     //! One of the PressureFormatter.UNIT_* ids, always valid.

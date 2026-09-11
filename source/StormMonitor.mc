@@ -35,6 +35,15 @@ class StormMonitor {
         _lastAlertTime = null;
     }
 
+    //! Retunes the thresholds without losing the current state, which is what
+    //! a settings change from the phone needs: the warning stays latched and
+    //! the re-arm timer keeps running, and the next update() judges the fresh
+    //! reading against the new numbers.
+    function setThresholds(triggerHpa as Lang.Float, clearHpa as Lang.Float) as Void {
+        _triggerHpa = triggerHpa;
+        _clearHpa = clearHpa;
+    }
+
     //! Feeds a fresh drop reading.
     //!
     //! @param dropHpa Pressure drop in hPa, or null when there is not enough

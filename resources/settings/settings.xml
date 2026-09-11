@@ -11,6 +11,18 @@
         <settingConfig type="boolean" />
     </setting>
 
+    <!-- The same scale the watch's built-in Storm Alert uses, so the banner
+         and the system alert can be set to fire together. -->
+    <setting propertyKey="@Properties.StormThresholdHpa" title="@Strings.SettingStormThreshold">
+        <settingConfig type="list">
+            <listEntry value="2">@Strings.StormThreshold2</listEntry>
+            <listEntry value="3">@Strings.StormThreshold3</listEntry>
+            <listEntry value="4">@Strings.StormThreshold4</listEntry>
+            <listEntry value="5">@Strings.StormThreshold5</listEntry>
+            <listEntry value="6">@Strings.StormThreshold6</listEntry>
+        </settingConfig>
+    </setting>
+
     <setting propertyKey="@Properties.PressureUnit" title="@Strings.SettingPressureUnit">
         <settingConfig type="list">
             <listEntry value="0">@Strings.UnitHpa</listEntry>

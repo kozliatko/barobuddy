@@ -16,6 +16,12 @@
     <string id="SettingShowSeconds">Show Seconds</string>
     <string id="SettingShowGraph">Show Pressure Graph</string>
     <string id="SettingStormAlert">Storm Warning Banner</string>
+    <string id="SettingStormThreshold">Storm Threshold</string>
+    <string id="StormThreshold2">2 hPa / 3 h (sensitive)</string>
+    <string id="StormThreshold3">3 hPa / 3 h</string>
+    <string id="StormThreshold4">4 hPa / 3 h</string>
+    <string id="StormThreshold5">5 hPa / 3 h</string>
+    <string id="StormThreshold6">6 hPa / 3 h (quiet)</string>
     <string id="SettingPressureUnit">Pressure Unit</string>
     <string id="UnitHpa">hPa</string>
     <string id="UnitInHg">inHg</string>
