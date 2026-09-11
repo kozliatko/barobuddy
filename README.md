@@ -255,14 +255,18 @@ independent rules on one barometer.
 | fēnix 5S | 218×218 | 36×36 |
 | fēnix Chronos | 218×218 | 36×36 |
 
-| | | | |
-| --- | --- | --- | --- |
-| ![Forerunner 935](docs/screenshots/fr935.png) | ![fēnix 7X](docs/screenshots/fenix7x.png) | ![fēnix 5S](docs/screenshots/fenix5s.png) | ![Forerunner 965](docs/screenshots/fr965.png) |
-| Forerunner 935, 240×240 | fēnix 7X, 280×280 | fēnix 5S, 218×218 | Forerunner 965, 454×454 |
+| | | |
+| --- | --- | --- |
+| ![Forerunner 935](docs/screenshots/fr935.png) | ![fēnix 7X](docs/screenshots/fenix7x.png) | ![fēnix 5S](docs/screenshots/fenix5s.png) |
+| Forerunner 935, 240×240 | fēnix 7X, 280×280 | fēnix 5S, 218×218 |
+| ![vívoactive 3](docs/screenshots/vivoactive3.png) | ![fēnix 8 43mm](docs/screenshots/fenix8-43mm.png) | ![Forerunner 965](docs/screenshots/fr965.png) |
+| vívoactive 3, 240×240 | fēnix 8 43mm, 416×416 | Forerunner 965, 454×454 |
 
-The same source on four screen sizes. Nothing is scaled: every row is placed
-from the font metrics of the device it is drawn on, which is why the clock font
-differs between them. The FR965 also has a second face for when it sleeps:
+One screenshot per screen size the app ships for. Nothing is scaled: every row
+is placed from the font metrics of the device it is drawn on, which is why the
+clock font differs between them — the vívoactive 3 and the Forerunner 935 have
+the same 240×240 screen and still do not draw the same clock. The AMOLED
+devices also have a second face for when they sleep:
 
 <img src="docs/screenshots/fr965-always-on.png" width="320" alt="Forerunner 965 always-on screen">
 
@@ -271,22 +275,28 @@ These are simulator screenshots, cropped to the display with
 why the pressure reads 864 hPa — see
 [Notes on the reading](#notes-on-the-reading).
 
-The four devices on the fēnix 7X row share one Connect IQ device profile
-(`fenix7x`), and the six on the fēnix 8 47mm row share `fenix847mm`, so a
-single build covers each row.
+Eleven Connect IQ device profiles cover the list above: the four devices on
+the fēnix 7X row share `fenix7x` and the six on the fēnix 8 47mm row share
+`fenix847mm`, so a single build covers each row. The only thing the extra
+resource buckets hold is the launcher icon — one per icon size, plus
+`resources-vivoactive3` for the single target whose icon is not square —
+because everything the face draws is laid out from the device's own metrics at
+run time rather than from a per-screen layout file.
 
 The fēnix 8 and Forerunner 965 rows are AMOLED and are drawn differently while
 they sleep, which the design notes below explain; the rest are 64-colour MIP
-displays. All
-run Connect IQ API 3.0.0 or later, which is what the app targets. The
-Forerunner 935 is the reference device: where a trade-off has to be made, it is
-made in favour of the FR935.
+displays. All run Connect IQ API 3.0.0 or later, which is what the app
+targets. The Forerunner 935 is the reference device: where a trade-off has to
+be made, it is made in favour of the FR935.
 
 The clock font is not the same on every device. Font sizes are a device
 decision, and the fēnix 7X family draws the largest number font at 44% of the
 screen height against the FR935's 24%, which would leave no room for the rest
 of the stack. `onLayout()` therefore measures the candidates and takes the
-largest one that fits inside 28% of the screen.
+largest one that fits inside 28% of the screen. That is why the vívoactive 3
+clock is smaller than the FR935's on the same 240×240 screen: its two largest
+number fonts measure 39% and 31%, both over the limit, so the face settles for
+the 20% one.
 
 The only permission the app requests is `SensorHistory`.
 
