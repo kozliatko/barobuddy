@@ -4,7 +4,7 @@
 [![Platform: Connect IQ](https://img.shields.io/badge/platform-Connect%20IQ-007cc3)](https://developer.garmin.com/connect-iq/overview/)
 [![API 3.0.0](https://img.shields.io/badge/API-3.0.0-007cc3)](https://developer.garmin.com/connect-iq/api-docs/)
 [![Language: Monkey C](https://img.shields.io/badge/language-Monkey%20C-6f4e9c)](https://developer.garmin.com/connect-iq/monkey-c/)
-[![Devices: 9](https://img.shields.io/badge/devices-9-informational)](#supported-devices)
+[![Devices: 11](https://img.shields.io/badge/devices-11-informational)](#supported-devices)
 [![Unit tests: 62](https://img.shields.io/badge/unit%20tests-62-brightgreen)](#running-the-tests)
 [![Type check: strict](https://img.shields.io/badge/monkeyc%20--l%203-clean-brightgreen)](#building-from-source)
 
@@ -114,7 +114,7 @@ Nothing is drawn at fixed pixel coordinates. The display is round, so a layout
 designed for a 240×240 rectangle would put its corners off screen. Every
 position is stacked top to bottom in `onLayout()` from the real font metrics
 and kept inside the circle, which is also what lets the same source render on
-nine devices with four different screen sizes.
+eleven devices with five different screen sizes.
 
 | Row | Content |
 | --- | --- |
@@ -243,7 +243,9 @@ independent rules on one barometer.
 
 | Device | Screen | Launcher icon |
 | --- | --- | --- |
+| fēnix 8 47mm and 51mm, tactix 8 47mm and 51mm, quatix 8 47mm and 51mm | 454×454 AMOLED | 65×65 |
 | Forerunner 965 | 454×454 AMOLED | 65×65 |
+| fēnix 8 43mm | 416×416 AMOLED | 60×60 |
 | Enduro 2, fēnix 7X, tactix 7, quatix 7X Solar | 280×280 | 40×40 |
 | Forerunner 935 | 240×240 | 40×40 |
 | vívoactive 3 | 240×240 | 40×33 |
@@ -270,10 +272,12 @@ why the pressure reads 864 hPa — see
 [Notes on the reading](#notes-on-the-reading).
 
 The four devices on the fēnix 7X row share one Connect IQ device profile
-(`fenix7x`), so a single build covers all of them.
+(`fenix7x`), and the six on the fēnix 8 47mm row share `fenix847mm`, so a
+single build covers each row.
 
-All but the Forerunner 965 are 64-colour MIP displays; the FR965 is AMOLED and
-is drawn differently while it sleeps, which the design notes below explain. All
+The fēnix 8 and Forerunner 965 rows are AMOLED and are drawn differently while
+they sleep, which the design notes below explain; the rest are 64-colour MIP
+displays. All
 run Connect IQ API 3.0.0 or later, which is what the app targets. The
 Forerunner 935 is the reference device: where a trade-off has to be made, it is
 made in favour of the FR935.
@@ -326,7 +330,7 @@ monkeyc -f monkey.jungle -d fr935 -o bin/BaroBuddy-fr935.prg \
 ```
 
 - `-l 3` is the strictest type checker. The project builds clean at that level
-  with no warnings, in both debug and release, on all nine devices.
+  with no warnings, in both debug and release, on all eleven devices.
 - `-r` produces a release build (about 24 kB per device).
 - `-e` together with an `.iq` output produces a store-ready package for all
   devices at once.
@@ -399,7 +403,8 @@ source/
   *Test.mc                Unit and render tests, excluded from shipping builds
 resources/                Strings, settings, properties, 40x40 launcher icon
 resources-round-218x218/  36x36 launcher icon for the smaller screens
-resources-round-454x454/  65x65 launcher icon for the Forerunner 965
+resources-round-454x454/  65x65 launcher icon for the FR965 and fenix 8 47mm
+resources-round-416x416/  60x60 launcher icon for the fenix 8 43mm
 resources-vivoactive3/    40x33 launcher icon, the one target that is not square
 tools/                    Launcher icon generator, screenshot cropper
 docs/screenshots/         Per-device simulator screenshots used in this README
@@ -414,7 +419,8 @@ A few decisions that are not obvious from the code:
 **The AMOLED screen goes dark on its own terms.** A panel with burn-in
 protection is not allowed `onPartialUpdate()` at all, and a sleeping face that
 lights more than a tenth of the screen's luminance gets switched off by the
-system. So on the Forerunner 965 the face detects
+system. So on the AMOLED devices — the Forerunner 965 and the fēnix 8 — the face
+detects
 `DeviceSettings.requiresBurnInProtection`, gives up partial updates outright,
 and replaces the sleeping face with a stripped one: the time and the reading in
 grey, plus the storm warning if one is latched, and nothing else. The whole

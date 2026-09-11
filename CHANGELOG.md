@@ -11,11 +11,14 @@ Initial development. Nothing has been released yet.
 
 ### Added
 
-- Barometric watch face for nine Connect IQ devices: Forerunner 935 and 965,
-  vívoactive 3, fēnix 5, 5S and 5X, fēnix Chronos, D2 Charlie, and the fēnix 7X
-  profile that also covers the Enduro 2, tactix 7 and quatix 7X Solar.
+- Barometric watch face for eleven Connect IQ devices: Forerunner 935 and 965,
+  vívoactive 3, fēnix 5, 5S and 5X, fēnix Chronos, D2 Charlie, the fēnix 7X
+  profile that also covers the Enduro 2, tactix 7 and quatix 7X Solar, and the
+  fēnix 8 AMOLED in both 43mm and 47/51mm, the latter also covering the
+  tactix 8 and quatix 8.
 - Always-on screen for panels that report `requiresBurnInProtection`, which on
-  the supported devices means the Forerunner 965: partial updates are given up,
+  the supported devices means the Forerunner 965 and the fēnix 8 AMOLED:
+  partial updates are given up,
   the sleeping face is reduced to the time, the reading and any storm warning
   in grey, and the group is shifted a few pixels every minute so no pixel stays
   lit. It draws 1.2% of the panel's luminance against Garmin's 10% budget.

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Generate the BaroBuddy launcher icons.
 
-Four sizes are needed across the target devices:
+Five sizes are needed across the target devices:
   40x40 -> fr935, fenix5, fenix5x, d2charlie, fenix7x family
   36x36 -> fenix5s, fenixchronos
-  65x65 -> fr965
+  65x65 -> fr965, fenix8 47mm/51mm
+  60x60 -> fenix8 43mm
   40x33 -> vivoactive3, the one target whose icon is not square
 
 Run from the project root:  python3 tools/make_launcher_icon.py
@@ -74,4 +75,5 @@ if __name__ == "__main__":
     draw_icon(40, os.path.join(ROOT, "resources", "drawables", "launcher_icon.png"))
     draw_icon(36, os.path.join(ROOT, "resources-round-218x218", "drawables", "launcher_icon.png"))
     draw_icon(65, os.path.join(ROOT, "resources-round-454x454", "drawables", "launcher_icon.png"))
+    draw_icon(60, os.path.join(ROOT, "resources-round-416x416", "drawables", "launcher_icon.png"))
     draw_icon(40, os.path.join(ROOT, "resources-vivoactive3", "drawables", "launcher_icon.png"), 33)
