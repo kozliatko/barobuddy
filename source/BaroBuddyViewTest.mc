@@ -341,3 +341,78 @@ function testViewAlwaysOnDisplay(logger as Test.Logger) as Lang.Boolean {
 
     return true;
 }
+
+//! A sport activity takes the screen for its whole duration, so the face comes
+//! back to a buffer that stops where the activity started. The watch kept
+//! logging pressure all along, and the face has to go and get it rather than
+//! wait a quarter of an hour per sample to fill the hole itself.
+(:test)
+function testViewPrimesAfterAGap(logger as Test.Logger) as Lang.Boolean {
+    var dc = ViewTestFixture.createDc();
+
+    try {
+        // Two hours of samples that end two hours ago: old enough to be a gap,
+        // recent enough to survive the staleness check on restore, and wide
+        // enough that the "already enough to forecast from" rule on its own
+        // would refuse the walk.
+        var last = Time.now().value() - 7200;
+        var data = new Lang.Array<Lang.Numeric>[16];
+        for (var i = 0; i < 8; i++) {
+            data[i * 2] = last - ((7 - i) * 900);
+            data[i * 2 + 1] = 101500.0 - i * 10.0;
+        }
+        Storage.setValue("PressureSamples", data as Lang.Array<Storage.ValueType>);
+
+        var view = new BaroBuddyView();
+        view.onLayout(dc);
+        view.onUpdate(dc);
+        view.saveBuffer();
+
+        var saved = Storage.getValue("PressureSamples");
+        Test.assertMessage(saved instanceof Lang.Array, "buffer was not written back");
+
+        var restored = new PressureBuffer(24, 900);
+        restored.fromArray(saved as Lang.Array);
+        var newest = restored.getLastTimestamp();
+        Test.assertMessage(newest != null, "restored buffer has no samples");
+        var age = Time.now().value() - (newest as Lang.Number);
+        Test.assertMessage(age < 7200,
+            "the gap was not filled from the sensor history, newest sample is "
+                + age + " s old");
+    } finally {
+        Storage.deleteValue("PressureSamples");
+    }
+
+    return true;
+}
+
+//! onHide() flushes, and the face is hidden every time the user opens a menu
+//! or a widget. Writing the same array back on each of those would be dozens
+//! of flash writes a day for no gain.
+(:test)
+function testViewSkipsRedundantSave(logger as Test.Logger) as Lang.Boolean {
+    var dc = ViewTestFixture.createDc();
+
+    try {
+        ViewTestFixture.seedPressureHistory(-300.0, 24);
+
+        var view = new BaroBuddyView();
+        view.onLayout(dc);
+        view.onUpdate(dc);
+        view.saveBuffer();
+
+        // A sentinel in place of the saved buffer: a second save with nothing
+        // new to write must leave it untouched.
+        Storage.setValue("PressureSamples", "untouched");
+        view.saveBuffer();
+        view.onHide();
+
+        var stored = Storage.getValue("PressureSamples");
+        Test.assertMessage(stored instanceof Lang.String && stored.equals("untouched"),
+            "a save with nothing new to write still rewrote the buffer");
+    } finally {
+        Storage.deleteValue("PressureSamples");
+    }
+
+    return true;
+}

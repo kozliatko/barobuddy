@@ -41,12 +41,17 @@ Initial development. Nothing has been released yet.
 - Seconds redrawn through `onPartialUpdate()` with a clip region, so the
   low-power path stays inside the power budget.
 - Persistence of the pressure buffer to `Application.Storage`, written every
-  fourth retained sample to limit flash wear, and discarded on restore if it is
-  more than six hours old.
+  fourth retained sample to limit flash wear, skipped when nothing has changed
+  since the last write, and discarded on restore if it is more than six hours
+  old.
+- Priming of the buffer from `SensorHistory`, on the first draw and again
+  whenever the newest sample is more than half an hour old, which is what a
+  sport activity leaves behind: the face does not run during the activity, the
+  watch's barometer log does.
 - Settings for units (hPa / inHg / mmHg), seconds, graph, the storm banner and
   the three status row cells, with validation of out-of-range values from the
   property store.
-- 62 unit and render tests, including off-screen `BufferedBitmap` smoke tests
+- 64 unit and render tests, including off-screen `BufferedBitmap` smoke tests
   covering every forecast state, every status field, the empty first-run
   buffer and a full sleep/wake cycle.
 - Clock font chosen at layout time from the measured height of the candidates,

@@ -50,6 +50,13 @@ class BaroBuddyView extends WatchUi.WatchFace {
     //! against a device that reports more than the buffer could ever use.
     private const HISTORY_SCAN_LIMIT = 400;
 
+    //! A gap between the newest sample and now that is longer than this means
+    //! the face was off the screen rather than merely between samples: a
+    //! sport activity, a long spell in a widget, a restart. Half an hour is
+    //! two of the buffer's own 15 minute slots, so an ordinary sampling wobble
+    //! never reaches it.
+    private const MAX_HISTORY_GAP_S = 1800;
+
     //! Persistence. Writing on every retained sample would mean a flash write
     //! every 15 minutes for the life of the device; every fourth sample is
     //! roughly hourly and loses at most 45 minutes of history on a hard reset.
@@ -117,6 +124,9 @@ class BaroBuddyView extends WatchUi.WatchFace {
     //! True on a panel that would burn in, which is AMOLED in practice.
     private var _burnIn as Lang.Boolean;
     private var _primed as Lang.Boolean;
+    //! When the history was last walked, so a device whose log stays empty is
+    //! not rescanned on every update.
+    private var _lastPrimeSec as Lang.Number?;
     private var _stormBanner as Lang.String?;
 
     // Cached settings, refreshed by _applySettings().
@@ -176,6 +186,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
         _partialUpdatesAllowed = !_burnIn && (WatchUi.WatchFace has :onPartialUpdate);
         _unsavedSamples = 0;
         _primed = false;
+        _lastPrimeSec = null;
         _stormBanner = null;
 
         _showSeconds = _settings.getShowSeconds();
@@ -432,16 +443,23 @@ class BaroBuddyView extends WatchUi.WatchFace {
     //! which is past MIN_FORECAST_SPAN_S and enough to draw a forecast on the
     //! very first frame.
     //!
-    //! Runs once, on the first draw rather than in initialize(): the history is
-    //! not readable yet while the view is being constructed, and asking there
+    //! Runs on the first draw rather than in initialize(): the history is not
+    //! readable yet while the view is being constructed, and asking there
     //! returns an empty iterator. A buffer that survived a restart still keeps
     //! precedence, because addSample() rejects anything older than what it
     //! already holds.
+    //!
+    //! It also runs again after a gap, which is what a sport activity leaves
+    //! behind: the face is torn down for the whole run while the system
+    //! barometer log keeps recording, so the hole is filled from that log in
+    //! one walk instead of being waited out a sample at a time.
     private function _primeFromHistory() as Void {
-        if (_primed) {
+        var now = Time.now().value();
+        if (!_needsPriming(now)) {
             return;
         }
         _primed = true;
+        _lastPrimeSec = now;
 
         if (!(Toybox has :SensorHistory)) {
             return;
@@ -449,9 +467,9 @@ class BaroBuddyView extends WatchUi.WatchFace {
         if (!(SensorHistory has :getPressureHistory)) {
             return;
         }
-        // Already have enough to forecast from; walking the history would cost
-        // a few hundred iterations to change nothing.
-        if (_buffer.getSpanSeconds() >= MIN_FORECAST_SPAN_S) {
+        // Enough to forecast from and nothing missing off the end; walking the
+        // history would cost a few hundred iterations to change nothing.
+        if (_buffer.getSpanSeconds() >= MIN_FORECAST_SPAN_S && !_hasHistoryGap(now)) {
             return;
         }
 
@@ -490,7 +508,47 @@ class BaroBuddyView extends WatchUi.WatchFace {
             _buffer.addSample(carried[i].toNumber(), carried[i + 1]);
         }
 
+        if (kept > 0) {
+            // Nothing the walk brought in has been written yet, and the walk
+            // is the one path that fills the buffer without going through
+            // _readPressure(). Counting the samples here is what lets
+            // saveBuffer() tell a buffer worth writing from one already on
+            // flash.
+            _unsavedSamples += kept;
+        }
+
         _logPrime(scanned, kept);
+    }
+
+    //! Whether the history is worth walking on this update.
+    //!
+    //! Always on the first draw, when the buffer is empty or thin. After that
+    //! only when the newest sample has gone stale, and then at most once per
+    //! gap window, so a device that reports no history at all is not rescanned
+    //! every minute for the life of the face.
+    private function _needsPriming(nowSec as Lang.Number) as Lang.Boolean {
+        if (!_primed) {
+            return true;
+        }
+        if (!_hasHistoryGap(nowSec)) {
+            return false;
+        }
+        var lastPrime = _lastPrimeSec;
+        if (lastPrime != null && nowSec - lastPrime < MAX_HISTORY_GAP_S) {
+            return false;
+        }
+        return true;
+    }
+
+    //! True when the newest sample is old enough that time has passed with the
+    //! face not running. An empty buffer has no gap: there is nothing for the
+    //! hole to be at the end of, and the first-draw rule already covers it.
+    private function _hasHistoryGap(nowSec as Lang.Number) as Lang.Boolean {
+        var last = _buffer.getLastTimestamp();
+        if (last == null) {
+            return false;
+        }
+        return nowSec - last > MAX_HISTORY_GAP_S;
     }
 
     (:debug)
@@ -556,7 +614,10 @@ class BaroBuddyView extends WatchUi.WatchFace {
     //! Writes the buffer to Application.Storage. Public so the app can flush on
     //! shutdown.
     public function saveBuffer() as Void {
-        if (_buffer.size() == 0) {
+        if (_buffer.size() == 0 || _unsavedSamples == 0) {
+            // Nothing has changed since the last write. onHide() calls this on
+            // every trip into a menu or a widget, and rewriting an identical
+            // array would be dozens of pointless flash writes a day.
             return;
         }
         try {

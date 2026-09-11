@@ -5,7 +5,7 @@
 [![API 3.0.0](https://img.shields.io/badge/API-3.0.0-007cc3)](https://developer.garmin.com/connect-iq/api-docs/)
 [![Language: Monkey C](https://img.shields.io/badge/language-Monkey%20C-6f4e9c)](https://developer.garmin.com/connect-iq/monkey-c/)
 [![Devices: 11](https://img.shields.io/badge/devices-11-informational)](#supported-devices)
-[![Unit tests: 62](https://img.shields.io/badge/unit%20tests-62-brightgreen)](#running-the-tests)
+[![Unit tests: 64](https://img.shields.io/badge/unit%20tests-64-brightgreen)](#running-the-tests)
 [![Type check: strict](https://img.shields.io/badge/monkeyc%20--l%203-clean-brightgreen)](#building-from-source)
 
 A barometric weather watch face for Garmin Connect IQ devices.
@@ -368,9 +368,9 @@ monkeyc -f monkey.jungle -d fr935 -o bin/BaroBuddyTest.prg \
 monkeydo bin/BaroBuddyTest.prg fr935 -t
 ```
 
-62 tests covering the buffer arithmetic, the forecast thresholds and their
+64 tests covering the buffer arithmetic, the forecast thresholds and their
 boundaries, the storm hysteresis and re-arm window, the unit conversions, the
-settings validation, the `Application.Storage` round trip, and eight render
+settings validation, the `Application.Storage` round trip, and eleven render
 smoke tests that draw the full face into an off-screen `BufferedBitmap`.
 
 The render tests cannot say whether the face *looks* right, but they catch what
@@ -458,7 +458,9 @@ the kind of bug the render smoke tests exist to find.
 **The buffer is written to flash about once an hour, not every sample.**
 Persisting on every retained sample would mean a flash write every 15 minutes
 for the life of the device. Writing every fourth sample costs at most 45
-minutes of history after a hard reset.
+minutes of history after a hard reset. A save with nothing new to write is
+skipped entirely, because the face also flushes when it is hidden and that
+happens on every trip into a menu or a widget.
 
 **History older than six hours is discarded on restore**, and the storm alert
 will not fire from data older than one hour. Readings from a previous life of
@@ -467,6 +469,12 @@ the device say nothing about the weather now.
 **Priming runs on the first draw, not in `initialize()`.** The sensor history
 is not readable while the view is being constructed; asking there returns an
 empty iterator.
+
+**Priming runs again after a gap of more than half an hour.** A sport activity
+takes the screen, so the face is torn down for the whole run while the watch's
+own barometer log keeps recording. Walking that log once on the way back fills
+the hole immediately, instead of leaving a gap in the graph until fresh samples
+have covered it a quarter of an hour at a time.
 
 ### Notes on the reading
 
