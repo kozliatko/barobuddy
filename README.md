@@ -4,8 +4,8 @@
 [![Platform: Connect IQ](https://img.shields.io/badge/platform-Connect%20IQ-007cc3)](https://developer.garmin.com/connect-iq/overview/)
 [![API 3.0.0](https://img.shields.io/badge/API-3.0.0-007cc3)](https://developer.garmin.com/connect-iq/api-docs/)
 [![Language: Monkey C](https://img.shields.io/badge/language-Monkey%20C-6f4e9c)](https://developer.garmin.com/connect-iq/monkey-c/)
-[![Devices: 7](https://img.shields.io/badge/devices-7-informational)](#supported-devices)
-[![Unit tests: 59](https://img.shields.io/badge/unit%20tests-59-brightgreen)](#running-the-tests)
+[![Devices: 8](https://img.shields.io/badge/devices-8-informational)](#supported-devices)
+[![Unit tests: 60](https://img.shields.io/badge/unit%20tests-60-brightgreen)](#running-the-tests)
 [![Type check: strict](https://img.shields.io/badge/monkeyc%20--l%203-clean-brightgreen)](#building-from-source)
 
 A barometric weather watch face for Garmin Connect IQ devices.
@@ -111,7 +111,7 @@ Nothing is drawn at fixed pixel coordinates. The display is round, so a layout
 designed for a 240×240 rectangle would put its corners off screen. Every
 position is stacked top to bottom in `onLayout()` from the real font metrics
 and kept inside the circle, which is also what lets the same source render on
-seven devices with three different screen sizes.
+eight devices with four different screen sizes.
 
 | Row | Content |
 | --- | --- |
@@ -179,6 +179,7 @@ it just did.
 
 | Device | Screen | Launcher icon |
 | --- | --- | --- |
+| Forerunner 965 | 454×454 AMOLED | 65×65 |
 | Enduro 2, fēnix 7X, tactix 7, quatix 7X Solar | 280×280 | 40×40 |
 | Forerunner 935 | 240×240 | 40×40 |
 | fēnix 5 | 240×240 | 40×40 |
@@ -187,10 +188,12 @@ it just did.
 | fēnix 5S | 218×218 | 36×36 |
 | fēnix Chronos | 218×218 | 36×36 |
 
-The four devices on the first row share one Connect IQ device profile
+The four devices on the fēnix 7X row share one Connect IQ device profile
 (`fenix7x`), so a single build covers all of them.
 
-All are 64-colour MIP displays, and all run Connect IQ API 3.0.0 or later,
+All but the Forerunner 965 are 64-colour MIP displays; the FR965 is AMOLED and
+is drawn differently while it sleeps, which the design notes below explain. All
+run Connect IQ API 3.0.0 or later,
 which is what the app targets. The Forerunner 935 is the reference device:
 where a trade-off has to be made, it is made in favour of the FR935.
 
@@ -240,7 +243,7 @@ monkeyc -f monkey.jungle -d fr935 -o bin/BaroBuddy-fr935.prg \
 ```
 
 - `-l 3` is the strictest type checker. The project builds clean at that level
-  with no warnings, in both debug and release, on all seven devices.
+  with no warnings, in both debug and release, on all eight devices.
 - `-r` produces a release build (about 24 kB per device).
 - `-e` together with an `.iq` output produces a store-ready package for all
   devices at once.
@@ -268,7 +271,7 @@ monkeyc -f monkey.jungle -d fr935 -o bin/BaroBuddyTest.prg \
 monkeydo bin/BaroBuddyTest.prg fr935 -t
 ```
 
-59 tests covering the buffer arithmetic, the forecast thresholds and their
+60 tests covering the buffer arithmetic, the forecast thresholds and their
 boundaries, the storm hysteresis and re-arm window, the unit conversions, the
 settings validation, the `Application.Storage` round trip, and eight render
 smoke tests that draw the full face into an off-screen `BufferedBitmap`.
@@ -313,6 +316,7 @@ source/
   *Test.mc                Unit and render tests, excluded from shipping builds
 resources/                Strings, settings, properties, 40x40 launcher icon
 resources-round-218x218/  36x36 launcher icon for the smaller screens
+resources-round-454x454/  65x65 launcher icon for the Forerunner 965
 tools/                    Launcher icon generator
 monkey.jungle             Build configuration: manifest and language buckets
 ```
@@ -320,6 +324,18 @@ monkey.jungle             Build configuration: manifest and language buckets
 ## Design notes
 
 A few decisions that are not obvious from the code:
+
+**The AMOLED screen goes dark on its own terms.** A panel with burn-in
+protection is not allowed `onPartialUpdate()` at all, and a sleeping face that
+lights more than a tenth of the screen's luminance gets switched off by the
+system. So on the Forerunner 965 the face detects
+`DeviceSettings.requiresBurnInProtection`, gives up partial updates outright,
+and replaces the sleeping face with a stripped one: the time and the reading in
+grey, plus the storm warning if one is latched, and nothing else. The whole
+group walks a four-step diamond of six pixels with the minute, so no pixel
+stays lit from one minute to the next. Measured off a simulator screenshot of
+the worst case — storm banner included — that screen draws 1.2% of the panel's
+luminance with 4.5% of its pixels on, against a budget of 10%.
 
 **English is registered as a language of its own.** Strings in an unqualified
 `resources/` directory are the base language, which the runtime falls back to

@@ -298,3 +298,46 @@ function testViewDiscardsStaleHistory(logger as Test.Logger) as Lang.Boolean {
 
     return true;
 }
+
+//! A panel with burn-in protection swaps the sleeping face for a stripped,
+//! dimmed one and is not allowed partial updates at all. The always-on screen
+//! also shifts with the minute, so this walks a whole four step cycle plus the
+//! storm branch, which is the one thing that survives into it.
+(:test)
+function testViewAlwaysOnDisplay(logger as Test.Logger) as Lang.Boolean {
+    var dc = ViewTestFixture.createDc();
+
+    try {
+        // A steep fall, so the storm warning latches and the banner branch of
+        // the always-on screen is drawn too.
+        ViewTestFixture.seedPressureHistory(-900.0, 24);
+
+        var view = new BaroBuddyView();
+        view.onLayout(dc);
+        view.setBurnInForTest(true);
+        view.onUpdate(dc);
+
+        view.onEnterSleep();
+        // One update per minute for a full cycle of the pixel shift.
+        for (var i = 0; i < 8; i++) {
+            view.onUpdate(dc);
+        }
+
+        // Partial updates are forbidden on a panel that burns in; calling one
+        // anyway must not draw the seconds back on top of the dimmed face.
+        view.onPartialUpdate(dc);
+
+        view.onExitSleep();
+        view.onUpdate(dc);
+
+        // And back to a normal panel on the same view.
+        view.setBurnInForTest(false);
+        view.onEnterSleep();
+        view.onUpdate(dc);
+        view.onExitSleep();
+    } finally {
+        Storage.deleteValue("PressureSamples");
+    }
+
+    return true;
+}

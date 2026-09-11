@@ -63,6 +63,19 @@ class BaroBuddyView extends WatchUi.WatchFace {
     private const COLOR_BATTERY_LOW = Graphics.COLOR_RED;
     private const COLOR_STORM = Graphics.COLOR_RED;
 
+    //! Always-on palette. A device with burn-in protection shuts the screen
+    //! off if the sleeping face lights more than a tenth of the panel's
+    //! luminance, so the always-on screen is drawn in grey rather than white
+    //! and carries only the time, the reading and a storm warning.
+    private const COLOR_AOD = 0x555555;
+    private const COLOR_AOD_STORM = 0xAA0000;
+
+    //! Pixels the always-on group is nudged by. It walks a four step diamond
+    //! with the minute so that no pixel stays lit from one minute to the next,
+    //! which is what the older burn-in rule asks for and what keeps the panel
+    //! healthy under the newer one.
+    private const AOD_SHIFT_PX = 6;
+
     //! Battery level below which the icon turns red.
     private const BATTERY_LOW_PCT = 15;
 
@@ -98,6 +111,8 @@ class BaroBuddyView extends WatchUi.WatchFace {
     private var _lowPower as Lang.Boolean;
     private var _partialUpdatesAllowed as Lang.Boolean;
     private var _unsavedSamples as Lang.Number;
+    //! True on a panel that would burn in, which is AMOLED in practice.
+    private var _burnIn as Lang.Boolean;
     private var _primed as Lang.Boolean;
     private var _stormBanner as Lang.String?;
 
@@ -150,7 +165,11 @@ class BaroBuddyView extends WatchUi.WatchFace {
         _lowPower = false;
         // Devices without partial update support simply never call it; asking
         // up front lets the seconds be hidden instead of frozen there.
-        _partialUpdatesAllowed = (WatchUi.WatchFace has :onPartialUpdate);
+        // Panels that burn in are not allowed a per-second partial update at
+        // all, so the question is settled here rather than at every draw.
+        var device = System.getDeviceSettings();
+        _burnIn = (device has :requiresBurnInProtection) && device.requiresBurnInProtection;
+        _partialUpdatesAllowed = !_burnIn && (WatchUi.WatchFace has :onPartialUpdate);
         _unsavedSamples = 0;
         _primed = false;
         _stormBanner = null;
@@ -286,6 +305,13 @@ class BaroBuddyView extends WatchUi.WatchFace {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
 
+        // Asleep on a panel that burns in, the full face would trip the
+        // protector and the system would simply shut the screen off.
+        if (_burnIn && _lowPower) {
+            _drawAlwaysOn(dc);
+            return;
+        }
+
         _drawWeatherIcon(dc);
         _drawTime(dc);
         if (_secondsVisible()) {
@@ -335,6 +361,16 @@ class BaroBuddyView extends WatchUi.WatchFace {
 
     public function isLowPower() as Lang.Boolean {
         return _lowPower;
+    }
+
+    //! Pretends the panel burns in, so the always-on path can be exercised on
+    //! any device the tests happen to run on. Annotated (:debug) rather than
+    //! (:test): the runner turns every (:test) symbol into a test case of its
+    //! own, and unit test builds are debug builds anyway.
+    (:debug)
+    public function setBurnInForTest(burnIn as Lang.Boolean) as Void {
+        _burnIn = burnIn;
+        _partialUpdatesAllowed = !_burnIn && (WatchUi.WatchFace has :onPartialUpdate);
     }
 
     //! Called by the delegate when onPartialUpdate() overran its power budget.
@@ -564,7 +600,8 @@ class BaroBuddyView extends WatchUi.WatchFace {
         return !_lowPower || _partialUpdatesAllowed;
     }
 
-    private function _drawTime(dc as Graphics.Dc) as Void {
+    //! The clock as it is shown, honouring the device's 12 or 24 hour setting.
+    private function _timeString() as Lang.String {
         var clock = System.getClockTime();
         var hour = clock.hour;
 
@@ -575,13 +612,65 @@ class BaroBuddyView extends WatchUi.WatchFace {
             }
         }
 
-        var timeStr = Lang.format("$1$:$2$", [
+        return Lang.format("$1$:$2$", [
             hour.format("%02d"),
             clock.min.format("%02d")
         ]);
+    }
 
+    private function _drawTime(dc as Graphics.Dc) as Void {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_timeX, _timeY, _fontTime, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(_timeX, _timeY, _fontTime, _timeString(), Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    //! The sleeping face of a device with burn-in protection.
+    //!
+    //! Everything that carries a wide block of lit pixels is dropped: the
+    //! weather icon, the seconds, the date, the graph and the status row. What
+    //! is left is the time and the reading, in grey, on the layout the awake
+    //! face uses, nudged by a few pixels a minute.
+    private function _drawAlwaysOn(dc as Graphics.Dc) as Void {
+        var minute = System.getClockTime().min;
+        var dx = _aodOffsetX(minute);
+        var dy = _aodOffsetY(minute);
+
+        dc.setColor(COLOR_AOD, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(_timeX + dx, _timeY + dy, _fontTime, _timeString(),
+            Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(_centerX + dx, _pressureY + dy, FONT_PRESSURE,
+            PressureFormatter.formatWithUnit(_buffer.getLastPressure(), _pressureUnit),
+            Graphics.TEXT_JUSTIFY_CENTER);
+
+        // A storm warning that vanishes the moment the wrist drops is no
+        // warning at all, so it survives into the always-on screen. The text
+        // alone: the filled triangle beside it is the brightest thing on the
+        // awake face.
+        if (_stormAlertEnabled && _storm.isActive()) {
+            if (_stormBanner == null) {
+                _stormBanner = WatchUi.loadResource(Rez.Strings.StormBanner) as Lang.String;
+            }
+            dc.setColor(COLOR_AOD_STORM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(_centerX + dx, _bannerY + dy, FONT_DATE, _stormBanner,
+                Graphics.TEXT_JUSTIFY_CENTER);
+        }
+    }
+
+    //! Horizontal leg of the always-on nudge: right, home, left, home.
+    private function _aodOffsetX(minute as Lang.Number) as Lang.Number {
+        var step = minute % 4;
+        if (step == 1) {
+            return AOD_SHIFT_PX;
+        }
+        return (step == 3) ? -AOD_SHIFT_PX : 0;
+    }
+
+    //! Vertical leg of the same diamond, a quarter turn out of phase.
+    private function _aodOffsetY(minute as Lang.Number) as Lang.Number {
+        var step = minute % 4;
+        if (step == 0) {
+            return -AOD_SHIFT_PX;
+        }
+        return (step == 2) ? AOD_SHIFT_PX : 0;
     }
 
     private function _drawSeconds(dc as Graphics.Dc) as Void {

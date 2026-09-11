@@ -11,9 +11,14 @@ Initial development. Nothing has been released yet.
 
 ### Added
 
-- Barometric watch face for seven Connect IQ devices: Forerunner 935, fēnix 5,
-  5S and 5X, fēnix Chronos, D2 Charlie, and the fēnix 7X profile that also
-  covers the Enduro 2, tactix 7 and quatix 7X Solar.
+- Barometric watch face for eight Connect IQ devices: Forerunner 935 and 965,
+  fēnix 5, 5S and 5X, fēnix Chronos, D2 Charlie, and the fēnix 7X profile that
+  also covers the Enduro 2, tactix 7 and quatix 7X Solar.
+- Always-on screen for panels that report `requiresBurnInProtection`, which on
+  the supported devices means the Forerunner 965: partial updates are given up,
+  the sleeping face is reduced to the time, the reading and any storm warning
+  in grey, and the group is shifted a few pixels every minute so no pixel stays
+  lit. It draws 1.2% of the panel's luminance against Garmin's 10% budget.
 - Six-hour pressure trend from a 24-slot ring buffer with a 15-minute minimum
   sample spacing, fitted by least-squares regression and normalised to
   hPa per 6 hours.
@@ -36,7 +41,7 @@ Initial development. Nothing has been released yet.
 - Settings for units (hPa / inHg / mmHg), seconds, graph, the storm banner and
   the three status row cells, with validation of out-of-range values from the
   property store.
-- 59 unit and render tests, including off-screen `BufferedBitmap` smoke tests
+- 60 unit and render tests, including off-screen `BufferedBitmap` smoke tests
   covering every forecast state, every status field, the empty first-run
   buffer and a full sleep/wake cycle.
 - Clock font chosen at layout time from the measured height of the candidates,
