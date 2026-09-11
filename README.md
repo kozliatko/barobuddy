@@ -188,14 +188,30 @@ it just did.
 | fēnix 5S | 218×218 | 36×36 |
 | fēnix Chronos | 218×218 | 36×36 |
 
+| | | | |
+| --- | --- | --- | --- |
+| ![Forerunner 935](docs/screenshots/fr935.png) | ![fēnix 7X](docs/screenshots/fenix7x.png) | ![fēnix 5S](docs/screenshots/fenix5s.png) | ![Forerunner 965](docs/screenshots/fr965.png) |
+| Forerunner 935, 240×240 | fēnix 7X, 280×280 | fēnix 5S, 218×218 | Forerunner 965, 454×454 |
+
+The same source on four screen sizes. Nothing is scaled: every row is placed
+from the font metrics of the device it is drawn on, which is why the clock font
+differs between them. The FR965 also has a second face for when it sleeps:
+
+<img src="docs/screenshots/fr965-always-on.png" width="320" alt="Forerunner 965 always-on screen">
+
+These are simulator screenshots, cropped to the display with
+`tools/crop_screenshot.py`. The simulated barometer is a random walk, which is
+why the pressure reads 864 hPa — see
+[Notes on the reading](#notes-on-the-reading).
+
 The four devices on the fēnix 7X row share one Connect IQ device profile
 (`fenix7x`), so a single build covers all of them.
 
 All but the Forerunner 965 are 64-colour MIP displays; the FR965 is AMOLED and
 is drawn differently while it sleeps, which the design notes below explain. All
-run Connect IQ API 3.0.0 or later,
-which is what the app targets. The Forerunner 935 is the reference device:
-where a trade-off has to be made, it is made in favour of the FR935.
+run Connect IQ API 3.0.0 or later, which is what the app targets. The
+Forerunner 935 is the reference device: where a trade-off has to be made, it is
+made in favour of the FR935.
 
 The clock font is not the same on every device. Font sizes are a device
 decision, and the fēnix 7X family draws the largest number font at 44% of the
@@ -317,7 +333,8 @@ source/
 resources/                Strings, settings, properties, 40x40 launcher icon
 resources-round-218x218/  36x36 launcher icon for the smaller screens
 resources-round-454x454/  65x65 launcher icon for the Forerunner 965
-tools/                    Launcher icon generator
+tools/                    Launcher icon generator, screenshot cropper
+docs/screenshots/         Per-device simulator screenshots used in this README
 monkey.jungle             Build configuration: manifest and language buckets
 ```
 
