@@ -20,7 +20,8 @@ position, so capture them back to back without moving the window.
 
 A fifth argument of "nearest" scales the crop by pixel doubling instead of
 Lanczos, which keeps the face crisp when the output is an exact multiple of the
-device resolution.
+device resolution. An output size of 0 skips the resize and writes the display
+at its native resolution, which is what the Connect IQ Store listing wants.
 """
 import sys
 from PIL import Image, ImageDraw
@@ -57,5 +58,7 @@ mask = Image.new('L', (size, size), 0)
 ImageDraw.Draw(mask).ellipse([inset, inset, size - 1 - inset, size - 1 - inset], fill=255)
 out = Image.new('RGB', (size, size), (0, 0, 0))
 out.paste(crop, (0, 0), mask)
-out.resize((out_size, out_size), resample).save(dst)
+if out_size > 0:
+    out = out.resize((out_size, out_size), resample)
+out.save(dst)
 print("%s display %dpx at %s" % (dst, size, box))

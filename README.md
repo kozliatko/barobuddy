@@ -335,6 +335,7 @@ resources-round-218x218/  36x36 launcher icon for the smaller screens
 resources-round-454x454/  65x65 launcher icon for the Forerunner 965
 tools/                    Launcher icon generator, screenshot cropper
 docs/screenshots/         Per-device simulator screenshots used in this README
+docs/store/               Native resolution screenshots for the Store listing
 monkey.jungle             Build configuration: manifest and language buckets
 ```
 
