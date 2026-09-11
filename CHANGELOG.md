@@ -42,6 +42,9 @@ Initial development. Nothing has been released yet.
 - Clock font chosen at layout time from the measured height of the candidates,
   so the stack keeps its proportions on screens whose fonts are scaled
   differently.
+- English registered as its own language bucket in `monkey.jungle`, pointed at
+  the base strings rather than a copy of them, so the settings labels resolve
+  in Garmin Connect.
 - Launcher icon generator for both required icon sizes.
 
 ### Notes

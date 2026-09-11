@@ -1,1 +1,8 @@
 project.manifest = manifest.xml
+
+# The strings in resources/ are the base language: Connect IQ falls back to
+# them when a device or the phone asks for a language we do not ship. Garmin
+# Connect reads the settings labels out of the language buckets of the store
+# package, so English is registered as a language of its own, pointed at the
+# same file rather than a copy of it.
+base.lang.eng = $(base.lang.eng);resources/strings

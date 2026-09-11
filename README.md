@@ -314,11 +314,21 @@ source/
 resources/                Strings, settings, properties, 40x40 launcher icon
 resources-round-218x218/  36x36 launcher icon for the smaller screens
 tools/                    Launcher icon generator
+monkey.jungle             Build configuration: manifest and language buckets
 ```
 
 ## Design notes
 
 A few decisions that are not obvious from the code:
+
+**English is registered as a language of its own.** Strings in an unqualified
+`resources/` directory are the base language, which the runtime falls back to
+for any language the app does not ship. Garmin Connect, though, reads the
+labels for the settings screen out of the language buckets of the store
+package, and an app whose only bucket is the base language leaves that lookup
+with nothing to match on. `monkey.jungle` therefore points `base.lang.eng` at
+`resources/strings`, so the package carries an `eng` bucket as well as the base
+one — from the same file, not a copy of it.
 
 **Watch faces cannot vibrate.** The platform refuses `Toybox.Attention` to
 watch faces, and the refusal is a *thrown permission error*, not a missing
