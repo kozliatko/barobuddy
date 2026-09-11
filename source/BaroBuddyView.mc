@@ -69,7 +69,21 @@ class BaroBuddyView extends WatchUi.WatchFace {
     //! Space between a status icon and its value.
     private const STATUS_GAP = 2;
 
-    private const FONT_TIME = Graphics.FONT_NUMBER_THAI_HOT;
+    //! Clock fonts, largest first. Which one is used is decided in
+    //! onLayout(); see _pickTimeFont().
+    private const FONTS_TIME = [
+        Graphics.FONT_NUMBER_THAI_HOT,
+        Graphics.FONT_NUMBER_HOT,
+        Graphics.FONT_NUMBER_MEDIUM,
+        Graphics.FONT_NUMBER_MILD
+    ];
+
+    //! Share of the screen height the clock may occupy. The FR935 lands at 24%
+    //! with its largest number font, which is the look this face was drawn
+    //! around. Devices that scale their number fonts harder — the fēnix 7X
+    //! family puts FONT_NUMBER_THAI_HOT at 44% of the screen — drop a size
+    //! rather than push the weather icon off the top and squash the graph.
+    private const TIME_HEIGHT_PCT = 28;
     private const FONT_DATE = Graphics.FONT_XTINY;
     private const FONT_PRESSURE = Graphics.FONT_TINY;
     private const FONT_SECONDS = Graphics.FONT_TINY;
@@ -121,6 +135,8 @@ class BaroBuddyView extends WatchUi.WatchFace {
     private var _statusW as Lang.Number;
     private var _statusH as Lang.Number;
     private var _statusIconSize as Lang.Number;
+    //! Clock font chosen for this screen, from FONTS_TIME.
+    private var _fontTime as Graphics.FontDefinition;
 
     public function initialize() {
         WatchFace.initialize();
@@ -169,6 +185,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
         _statusW = 0;
         _statusH = 0;
         _statusIconSize = 0;
+        _fontTime = FONTS_TIME[0];
 
         _restoreBuffer();
     }
@@ -186,7 +203,8 @@ class BaroBuddyView extends WatchUi.WatchFace {
         // Two pixels in from the bezel so no glyph is clipped by the round edge.
         var radius = (w < h ? w : h) / 2 - 2;
 
-        var timeH = Graphics.getFontHeight(FONT_TIME);
+        _fontTime = _pickTimeFont(h);
+        var timeH = Graphics.getFontHeight(_fontTime);
         var dateH = Graphics.getFontHeight(FONT_DATE);
         var pressureH = Graphics.getFontHeight(FONT_PRESSURE);
 
@@ -235,7 +253,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
 
         // Both widths are measured whether or not seconds are enabled, so that
         // toggling the setting later does not need another Dc.
-        _timeW = dc.getTextWidthInPixels("00:00", FONT_TIME);
+        _timeW = dc.getTextWidthInPixels("00:00", _fontTime);
         _secondsW = dc.getTextWidthInPixels(":00", FONT_SECONDS);
         _secondsH = Graphics.getFontHeight(FONT_SECONDS);
         // Seconds sit on the baseline of the big time block.
@@ -563,7 +581,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
         ]);
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_timeX, _timeY, FONT_TIME, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(_timeX, _timeY, _fontTime, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function _drawSeconds(dc as Graphics.Dc) as Void {
@@ -1282,6 +1300,23 @@ class BaroBuddyView extends WatchUi.WatchFace {
         return fields;
     }
 
+    //! Largest clock font that leaves room for the rest of the stack.
+    //!
+    //! Font sizes are a device decision, not a pixel one: two screens of the
+    //! same height can put the same font at wildly different heights. Measuring
+    //! is the only way to keep the same proportions everywhere.
+    private function _pickTimeFont(h as Lang.Number) as Graphics.FontDefinition {
+        var budget = h * TIME_HEIGHT_PCT / 100;
+        for (var i = 0; i < FONTS_TIME.size(); i++) {
+            if (Graphics.getFontHeight(FONTS_TIME[i]) <= budget) {
+                return FONTS_TIME[i];
+            }
+        }
+        // Every candidate is too tall. The smallest is the best of a bad set,
+        // and onLayout() clamps the top of the stack to the screen anyway.
+        return FONTS_TIME[FONTS_TIME.size() - 1];
+    }
+
     //! Vertical distance from the screen centre at which a horizontal run of
     //! 2 * halfWidth pixels still fits inside a circle of the given radius.
     private function _chordOffset(radius as Lang.Number, halfWidth as Lang.Number) as Lang.Number {
@@ -1298,7 +1333,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
     private function _logLayout(dc as Graphics.Dc, w as Lang.Number, h as Lang.Number) as Void {
         System.println("layout " + w + "x" + h
             + " icon=" + _iconY + "+" + _iconSize
-            + " time=" + _timeY + "+" + Graphics.getFontHeight(FONT_TIME)
+            + " time=" + _timeY + "+" + Graphics.getFontHeight(_fontTime)
             + " timeX=" + _timeX + " timeW=" + _timeW
             + " sec=" + _secondsX + "," + _secondsY + "+" + _secondsW + "x" + _secondsH
             + " date=" + _dateY + "+" + Graphics.getFontHeight(FONT_DATE)

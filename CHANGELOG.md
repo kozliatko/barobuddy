@@ -11,8 +11,9 @@ Initial development. Nothing has been released yet.
 
 ### Added
 
-- Barometric watch face for six Connect IQ devices: Forerunner 935, fēnix 5,
-  5S and 5X, fēnix Chronos and D2 Charlie.
+- Barometric watch face for seven Connect IQ devices: Forerunner 935, fēnix 5,
+  5S and 5X, fēnix Chronos, D2 Charlie, and the fēnix 7X profile that also
+  covers the Enduro 2, tactix 7 and quatix 7X Solar.
 - Six-hour pressure trend from a 24-slot ring buffer with a 15-minute minimum
   sample spacing, fitted by least-squares regression and normalised to
   hPa per 6 hours.
@@ -38,6 +39,9 @@ Initial development. Nothing has been released yet.
 - 59 unit and render tests, including off-screen `BufferedBitmap` smoke tests
   covering every forecast state, every status field, the empty first-run
   buffer and a full sleep/wake cycle.
+- Clock font chosen at layout time from the measured height of the candidates,
+  so the stack keeps its proportions on screens whose fonts are scaled
+  differently.
 - Launcher icon generator for both required icon sizes.
 
 ### Notes

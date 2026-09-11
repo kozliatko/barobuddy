@@ -58,11 +58,18 @@ module ViewTestFixture {
     //! against the device it will ship to.
     function createDc() as Graphics.Dc {
         var settings = System.getDeviceSettings();
-        var bitmap = new Graphics.BufferedBitmap({
+        var options = {
             :width => settings.screenWidth,
             :height => settings.screenHeight
-        });
-        return bitmap.getDc();
+        };
+        // API 4.0.0 replaced the BufferedBitmap constructor with a factory that
+        // returns a reference. On those devices the constructor is gone, and
+        // calling it fails at run time rather than at compile time.
+        if (Graphics has :createBufferedBitmap) {
+            var bitmap = Graphics.createBufferedBitmap(options).get() as Graphics.BufferedBitmap;
+            return bitmap.getDc();
+        }
+        return (new Graphics.BufferedBitmap(options)).getDc();
     }
 }
 

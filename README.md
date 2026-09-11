@@ -4,8 +4,8 @@
 [![Platform: Connect IQ](https://img.shields.io/badge/platform-Connect%20IQ-007cc3)](https://developer.garmin.com/connect-iq/overview/)
 [![API 3.0.0](https://img.shields.io/badge/API-3.0.0-007cc3)](https://developer.garmin.com/connect-iq/api-docs/)
 [![Language: Monkey C](https://img.shields.io/badge/language-Monkey%20C-6f4e9c)](https://developer.garmin.com/connect-iq/monkey-c/)
-[![Devices: 6](https://img.shields.io/badge/devices-6-informational)](#supported-devices)
-[![Unit tests: 54](https://img.shields.io/badge/unit%20tests-54-brightgreen)](#running-the-tests)
+[![Devices: 7](https://img.shields.io/badge/devices-7-informational)](#supported-devices)
+[![Unit tests: 59](https://img.shields.io/badge/unit%20tests-59-brightgreen)](#running-the-tests)
 [![Type check: strict](https://img.shields.io/badge/monkeyc%20--l%203-clean-brightgreen)](#building-from-source)
 
 A barometric weather watch face for Garmin Connect IQ devices.
@@ -111,12 +111,12 @@ Nothing is drawn at fixed pixel coordinates. The display is round, so a layout
 designed for a 240×240 rectangle would put its corners off screen. Every
 position is stacked top to bottom in `onLayout()` from the real font metrics
 and kept inside the circle, which is also what lets the same source render on
-six devices with three different screen sizes.
+seven devices with three different screen sizes.
 
 | Row | Content |
 | --- | --- |
 | Icon | Forecast: sun / sun behind cloud / cloud / rain / lightning |
-| Time | `FONT_NUMBER_THAI_HOT`, with smaller seconds tucked to its right |
+| Time | Largest number font that fits the screen, with smaller seconds tucked to its right |
 | Date | `Fri 4 Sep` |
 | Pressure | Trend arrow, coloured by direction, then the reading and its unit |
 | Graph **or** storm | The recent pressure trace; during a storm a red banner takes its place |
@@ -179,6 +179,7 @@ it just did.
 
 | Device | Screen | Launcher icon |
 | --- | --- | --- |
+| Enduro 2, fēnix 7X, tactix 7, quatix 7X Solar | 280×280 | 40×40 |
 | Forerunner 935 | 240×240 | 40×40 |
 | fēnix 5 | 240×240 | 40×40 |
 | fēnix 5X | 240×240 | 40×40 |
@@ -186,9 +187,18 @@ it just did.
 | fēnix 5S | 218×218 | 36×36 |
 | fēnix Chronos | 218×218 | 36×36 |
 
-All are 64-colour MIP displays on Connect IQ API 3.0.0. The Forerunner 935 is
-the reference device: where a trade-off has to be made, it is made in favour of
-the FR935.
+The four devices on the first row share one Connect IQ device profile
+(`fenix7x`), so a single build covers all of them.
+
+All are 64-colour MIP displays, and all run Connect IQ API 3.0.0 or later,
+which is what the app targets. The Forerunner 935 is the reference device:
+where a trade-off has to be made, it is made in favour of the FR935.
+
+The clock font is not the same on every device. Font sizes are a device
+decision, and the fēnix 7X family draws the largest number font at 44% of the
+screen height against the FR935's 24%, which would leave no room for the rest
+of the stack. `onLayout()` therefore measures the candidates and takes the
+largest one that fits inside 28% of the screen.
 
 The only permission the app requests is `SensorHistory`.
 
@@ -230,7 +240,7 @@ monkeyc -f monkey.jungle -d fr935 -o bin/BaroBuddy-fr935.prg \
 ```
 
 - `-l 3` is the strictest type checker. The project builds clean at that level
-  with no warnings, in both debug and release, on all six devices.
+  with no warnings, in both debug and release, on all seven devices.
 - `-r` produces a release build (about 24 kB per device).
 - `-e` together with an `.iq` output produces a store-ready package for all
   devices at once.
