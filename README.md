@@ -92,7 +92,10 @@ shell layer, the head torch and the means to call for help anyway.
 - **Six-hour pressure trend** from the watch's own barometer, expressed in
   hPa per 6 hours and classified into five forecast states.
 - **Storm alert** on a rapid three-hour pressure drop, with hysteresis so it
-  does not flicker and a re-arm window so it does not nag.
+  does not flicker and a re-arm window so it does not nag. Its threshold is set
+  on the same scale as the watch's own Storm Alert, so the two can be made to
+  agree — see [Living with the watch's own Storm
+  Alert](#living-with-the-watchs-own-storm-alert).
 - **History priming.** On first run the face fills its buffer from
   `SensorHistory`, so it is useful within minutes of installation instead of
   after six hours of wear.
@@ -176,16 +179,53 @@ rather than its first sample, so a 3 hPa setting becomes a 1.5 hPa trigger; the
 warning clears again at two thirds of that, and the gap is what stops it
 flickering around the threshold.
 
-The watch's Storm Alert and BaroBuddy's banner cannot talk to each other —
-Connect IQ exposes no API for the built-in alert — but they read the same
-barometer, so matching the thresholds is enough to keep them in step. A watch
-face is also refused `Toybox.Attention`, so the system alert is the only one of
-the two that can vibrate.
-
 The two measures can disagree: pressure that fell sharply and has begun
 recovering will show a rising trend while the storm is still latched. That is
 intended, not a bug — one describes where the pressure is going, the other what
 it just did.
+
+### Living with the watch's own Storm Alert
+
+Most barometric Garmins have a Storm Alert of their own, in the firmware, under
+*Settings → Sensors & Accessories → Altimeter → Storm Alert* (on some models
+*Barometer* rather than *Altimeter*). It watches the same barometer BaroBuddy
+does and buzzes when the pressure falls faster than the rate you set there.
+
+**The two cannot talk to each other.** Connect IQ exposes no API for the
+built-in alert: there is no way to read whether it is switched on, no way to
+read its threshold, and no event when it fires. Nothing in the SDK mentions it —
+the only place the word "storm" appears at all is the list of
+`Toybox.Weather` forecast conditions, which is the phone's forecast and not the
+barometer. So BaroBuddy can neither suppress its banner because the watch has
+already warned you, nor raise one because the watch did.
+
+What they do share is the data. BaroBuddy primes its buffer from
+`SensorHistory`, the same barometer record the firmware watches, so the two are
+looking at identical numbers and only the rules differ. Setting both to the
+same threshold is therefore all the coordination that is available — and it is
+enough in practice.
+
+They are also good at different halves of the job:
+
+| | Watch's Storm Alert | BaroBuddy's banner |
+| --- | --- | --- |
+| Can vibrate or beep | Yes | **No** |
+| Visible without an alert popup | No | Yes, on the face and on the always-on screen |
+| Tells you it is *still* falling | No, it fires once | Yes, the banner stays while the drop persists |
+| Threshold | Set on the watch | Set in Garmin Connect, same scale |
+
+A watch face is refused `Toybox.Attention` outright — the module's supported
+runtime contexts are data fields, glances, widgets, watch apps and audio
+providers, and a watch face is not among them — so BaroBuddy's warning is
+visual only, and you see it when you look at your wrist. The firmware alert is
+the only one of the two that can reach you when you are not looking.
+
+**The recommendation is to leave both on**, set to the same number. The system
+alert wakes you; the banner is the persistent "it is still dropping" state you
+see every time you check the time, including at a glance on the FR965's
+always-on screen. If the thresholds are left different, the banner may appear
+without a buzz or a buzz arrive without a banner — not a malfunction, just two
+independent rules on one barometer.
 
 ## Supported devices
 
@@ -381,8 +421,9 @@ one — from the same file, not a copy of it.
 **Watch faces cannot vibrate.** The platform refuses `Toybox.Attention` to
 watch faces, and the refusal is a *thrown permission error*, not a missing
 symbol — so `Toybox has :Attention` returns true and the face dies on the next
-line. The storm alert is therefore visual only. This is the kind of bug the
-render smoke tests exist to find.
+line. The storm alert is therefore visual only, which is why the face is meant
+to run alongside the watch's own Storm Alert rather than replace it. This is
+the kind of bug the render smoke tests exist to find.
 
 **The buffer is written to flash about once an hour, not every sample.**
 Persisting on every retained sample would mean a flash write every 15 minutes
