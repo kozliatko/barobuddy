@@ -63,6 +63,14 @@ class BaroBuddyView extends WatchUi.WatchFace {
     private const STORAGE_KEY_SAMPLES = "PressureSamples";
     private const SAVE_EVERY_SAMPLES = 4;
 
+    //! The storm latch and its re-arm timer, written only when they change.
+    //! A restored warning older than this is thrown away rather than shown:
+    //! the buffer it was raised from is discarded at the same age, and a
+    //! banner with no data behind it would be a claim about a storm nobody
+    //! can check.
+    private const STORAGE_KEY_STORM = "StormState";
+    private const MAX_STORM_STATE_AGE_S = 21600;
+
     //! Palette. All values exist in the 64 colour MIP palette of the FR935.
     private const COLOR_DATE = 0x555555;
     private const COLOR_PRESSURE = 0xAAAAAA;
@@ -128,6 +136,9 @@ class BaroBuddyView extends WatchUi.WatchFace {
     //! not rescanned on every update.
     private var _lastPrimeSec as Lang.Number?;
     private var _stormBanner as Lang.String?;
+    //! The latch as it currently stands on flash, so an unchanged state is not
+    //! written back on every update.
+    private var _stormSavedActive as Lang.Boolean;
 
     // Cached settings, refreshed by _applySettings().
     private var _showSeconds as Lang.Boolean;
@@ -188,6 +199,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
         _primed = false;
         _lastPrimeSec = null;
         _stormBanner = null;
+        _stormSavedActive = false;
 
         _showSeconds = _settings.getShowSeconds();
         _showGraph = _settings.getShowGraph();
@@ -222,6 +234,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
         _fontTime = FONTS_TIME[0];
 
         _restoreBuffer();
+        _restoreStormState();
     }
 
     //! Stacks the layout from the measured font heights so it adapts to any
@@ -386,6 +399,15 @@ class BaroBuddyView extends WatchUi.WatchFace {
     public function setBurnInForTest(burnIn as Lang.Boolean) as Void {
         _burnIn = burnIn;
         _partialUpdatesAllowed = !_burnIn && (WatchUi.WatchFace has :onPartialUpdate);
+    }
+
+    //! Whether the storm warning is latched. For the tests only, which is what
+    //! lets them check that a warning survives a restart; the face itself
+    //! reads the monitor directly. (:debug) for the same reason as
+    //! setBurnInForTest().
+    (:debug)
+    public function isStormActiveForTest() as Lang.Boolean {
+        return _storm.isActive();
     }
 
     //! Called by the delegate when onPartialUpdate() overran its power budget.
@@ -601,7 +623,17 @@ class BaroBuddyView extends WatchUi.WatchFace {
         }
 
         var drop = _buffer.getDropHpa(STORM_WINDOW_S, STORM_MIN_SAMPLES);
-        if (_storm.update(drop, now) && _stormAlertEnabled) {
+        var alerted = _storm.update(drop, now);
+
+        // Raising and clearing the warning are the only moments the stored
+        // state goes out of date, and they happen a handful of times per
+        // storm, so this costs nothing that the periodic buffer write does not
+        // already cost.
+        if (_storm.isActive() != _stormSavedActive) {
+            _saveStormState();
+        }
+
+        if (alerted && _stormAlertEnabled) {
             // A storm can latch during a partial update, when only the seconds
             // are being redrawn. Ask for a full pass so the banner appears now
             // rather than at the next minute boundary.
@@ -658,6 +690,55 @@ class BaroBuddyView extends WatchUi.WatchFace {
         // a clock that has since been corrected.
         if (now - last > MAX_DATA_AGE_S || last > now) {
             _buffer.clear();
+        }
+    }
+
+    //! Writes the storm latch and its re-arm timer.
+    private function _saveStormState() as Void {
+        try {
+            Storage.setValue(STORAGE_KEY_STORM,
+                _storm.toArray() as Lang.Array<Storage.ValueType>);
+        } catch (e) {
+            // Same reasoning as saveBuffer(): a face that cannot write is
+            // still a face that works, it just forgets across a restart.
+        }
+        _stormSavedActive = _storm.isActive();
+    }
+
+    //! Reloads the storm latch so a restart does not re-announce a storm the
+    //! user has already been shown, and does not drop a warning that is still
+    //! standing merely because the drop has eased off the trigger.
+    //!
+    //! A latch older than the buffer's own lifetime is dropped instead: the
+    //! history it was raised from is gone by then, so nothing would confirm it
+    //! and the next update() has no way to clear it either. If the storm is
+    //! still happening, the restored buffer raises it again on the first draw.
+    private function _restoreStormState() as Void {
+        var data = null;
+        try {
+            data = Storage.getValue(STORAGE_KEY_STORM);
+        } catch (e) {
+            return;
+        }
+
+        if (!(data instanceof Lang.Array)) {
+            return;
+        }
+
+        _storm.fromArray(data as Lang.Array);
+        _stormSavedActive = _storm.isActive();
+
+        var alerted = _storm.getLastAlertTime();
+        if (alerted == null) {
+            return;
+        }
+
+        var now = Time.now().value();
+        // Too old to stand on its own, or stamped in the future by a clock
+        // that has since been corrected.
+        if (now - alerted > MAX_STORM_STATE_AGE_S || alerted > now) {
+            _storm.reset();
+            _stormSavedActive = false;
         }
     }
 

@@ -208,3 +208,68 @@ function testStormRetuneKeepsState(logger as Test.Logger) as Lang.Boolean {
 
     return true;
 }
+
+//! The face is torn down whenever anything else takes the screen, so the latch
+//! and the re-arm timer have to survive a round trip through storage.
+(:test)
+function testStormStateRoundTrip(logger as Test.Logger) as Lang.Boolean {
+    var m = new StormMonitor(1.5, 1.0, 10800);
+    var t0 = 1700000000;
+    Test.assertMessage(m.update(2.0, t0), "trigger value did not alert");
+
+    var restored = new StormMonitor(1.5, 1.0, 10800);
+    restored.fromArray(m.toArray() as Lang.Array);
+
+    Test.assertMessage(restored.isActive(), "the warning did not survive the round trip");
+    Test.assertEqual(restored.getLastAlertTime() as Lang.Number, t0);
+
+    // The point of carrying the state: the hysteresis gap still applies, so a
+    // drop between the clear level and the trigger keeps the warning up.
+    Test.assertMessage(!restored.update(1.2, t0 + 900), "an ongoing storm alerted again");
+    Test.assertMessage(restored.isActive(), "the restored warning was dropped inside the gap");
+
+    // And the re-arm window is still running against the original alert.
+    Test.assertMessage(!restored.update(0.5, t0 + 1800), "clearing alerted");
+    Test.assertMessage(!restored.isActive(), "the warning survived below the clear level");
+    Test.assertMessage(!restored.update(2.0, t0 + 2700), "re-alerted inside the re-arm window");
+    Test.assertMessage(restored.isActive(), "the monitor did not latch again");
+
+    // That latch happened without an alert, so it has to clear once more
+    // before the expired window can be seen at all.
+    Test.assertMessage(!restored.update(0.5, t0 + 3600), "clearing alerted");
+    Test.assertMessage(restored.update(2.0, t0 + 10800), "did not re-alert after the window");
+
+    return true;
+}
+
+//! An idle monitor round trips as idle rather than as an alert at epoch zero.
+(:test)
+function testStormStateRoundTripIdle(logger as Test.Logger) as Lang.Boolean {
+    var m = new StormMonitor(1.5, 1.0, 10800);
+    var restored = new StormMonitor(1.5, 1.0, 10800);
+    restored.fromArray(m.toArray() as Lang.Array);
+
+    Test.assertMessage(!restored.isActive(), "an idle monitor restored as active");
+    Test.assertMessage(restored.getLastAlertTime() == null,
+        "an idle monitor restored with an alert time");
+    Test.assertMessage(restored.update(2.0, 1700000000), "the re-arm window blocked the first alert");
+    return true;
+}
+
+//! A corrupt blob out of storage must leave the monitor as it was rather than
+//! throw, which on a watch face means a crash the user sees.
+(:test)
+function testStormStateRejectsGarbage(logger as Test.Logger) as Lang.Boolean {
+    var m = new StormMonitor(1.5, 1.0, 10800);
+    var t0 = 1700000000;
+    Test.assertMessage(m.update(2.0, t0), "trigger value did not alert");
+
+    m.fromArray([]);
+    m.fromArray([1]);
+    m.fromArray(["yes", "no"]);
+    m.fromArray([null, null]);
+
+    Test.assertMessage(m.isActive(), "garbage cleared the warning");
+    Test.assertEqual(m.getLastAlertTime() as Lang.Number, t0);
+    return true;
+}

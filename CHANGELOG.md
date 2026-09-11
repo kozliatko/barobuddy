@@ -11,11 +11,11 @@ Initial development. Nothing has been released yet.
 
 ### Added
 
-- Barometric watch face for eleven Connect IQ devices: Forerunner 935 and 965,
-  vívoactive 3, fēnix 5, 5S and 5X, fēnix Chronos, D2 Charlie, the fēnix 7X
-  profile that also covers the Enduro 2, tactix 7 and quatix 7X Solar, and the
-  fēnix 8 AMOLED in both 43mm and 47/51mm, the latter also covering the
-  tactix 8 and quatix 8.
+- Barometric watch face for twelve Connect IQ devices: Forerunner 935 and 965,
+  vívoactive 3, fēnix 5, 5S and 5X, fēnix 7S, fēnix Chronos, D2 Charlie, the
+  fēnix 7X profile that also covers the Enduro 2, tactix 7 and quatix 7X
+  Solar, and the fēnix 8 AMOLED in both 43mm and 47/51mm, the latter also
+  covering the tactix 8 and quatix 8.
 - Always-on screen for panels that report `requiresBurnInProtection`, which on
   the supported devices means the Forerunner 965 and the fēnix 8 AMOLED:
   partial updates are given up,
@@ -48,10 +48,14 @@ Initial development. Nothing has been released yet.
   whenever the newest sample is more than half an hour old, which is what a
   sport activity leaves behind: the face does not run during the activity, the
   watch's barometer log does.
+- Persistence of the storm latch and its re-arm timer, so a restart keeps the
+  hysteresis gap instead of dropping a standing warning as soon as the fall
+  eases, and does not count the same storm twice. A latch more than six hours
+  old is discarded, since the history that raised it is gone by then.
 - Settings for units (hPa / inHg / mmHg), seconds, graph, the storm banner and
   the three status row cells, with validation of out-of-range values from the
   property store.
-- 64 unit and render tests, including off-screen `BufferedBitmap` smoke tests
+- 69 unit and render tests, including off-screen `BufferedBitmap` smoke tests
   covering every forecast state, every status field, the empty first-run
   buffer and a full sleep/wake cycle.
 - Clock font chosen at layout time from the measured height of the candidates,

@@ -4,8 +4,8 @@
 [![Platform: Connect IQ](https://img.shields.io/badge/platform-Connect%20IQ-007cc3)](https://developer.garmin.com/connect-iq/overview/)
 [![API 3.0.0](https://img.shields.io/badge/API-3.0.0-007cc3)](https://developer.garmin.com/connect-iq/api-docs/)
 [![Language: Monkey C](https://img.shields.io/badge/language-Monkey%20C-6f4e9c)](https://developer.garmin.com/connect-iq/monkey-c/)
-[![Devices: 11](https://img.shields.io/badge/devices-11-informational)](#supported-devices)
-[![Unit tests: 64](https://img.shields.io/badge/unit%20tests-64-brightgreen)](#running-the-tests)
+[![Devices: 12](https://img.shields.io/badge/devices-12-informational)](#supported-devices)
+[![Unit tests: 69](https://img.shields.io/badge/unit%20tests-69-brightgreen)](#running-the-tests)
 [![Type check: strict](https://img.shields.io/badge/monkeyc%20--l%203-clean-brightgreen)](#building-from-source)
 
 A barometric weather watch face for Garmin Connect IQ devices.
@@ -114,7 +114,7 @@ Nothing is drawn at fixed pixel coordinates. The display is round, so a layout
 designed for a 240×240 rectangle would put its corners off screen. Every
 position is stacked top to bottom in `onLayout()` from the real font metrics
 and kept inside the circle, which is also what lets the same source render on
-eleven devices with five different screen sizes.
+twelve devices with five different screen sizes.
 
 | Row | Content |
 | --- | --- |
@@ -247,6 +247,7 @@ independent rules on one barometer.
 | Forerunner 965 | 454×454 AMOLED | 65×65 |
 | fēnix 8 43mm | 416×416 AMOLED | 60×60 |
 | Enduro 2, fēnix 7X, tactix 7, quatix 7X Solar | 280×280 | 40×40 |
+| fēnix 7S | 240×240 | 40×40 |
 | Forerunner 935 | 240×240 | 40×40 |
 | vívoactive 3 | 240×240 | 40×33 |
 | fēnix 5 | 240×240 | 40×40 |
@@ -275,7 +276,7 @@ These are simulator screenshots, cropped to the display with
 why the pressure reads 864 hPa — see
 [Notes on the reading](#notes-on-the-reading).
 
-Eleven Connect IQ device profiles cover the list above: the four devices on
+Twelve Connect IQ device profiles cover the list above: the four devices on
 the fēnix 7X row share `fenix7x` and the six on the fēnix 8 47mm row share
 `fenix847mm`, so a single build covers each row. The only thing the extra
 resource buckets hold is the launcher icon — one per icon size, plus
@@ -340,7 +341,7 @@ monkeyc -f monkey.jungle -d fr935 -o bin/BaroBuddy-fr935.prg \
 ```
 
 - `-l 3` is the strictest type checker. The project builds clean at that level
-  with no warnings, in both debug and release, on all eleven devices.
+  with no warnings, in both debug and release, on all twelve devices.
 - `-r` produces a release build (about 24 kB per device).
 - `-e` together with an `.iq` output produces a store-ready package for all
   devices at once.
@@ -368,9 +369,10 @@ monkeyc -f monkey.jungle -d fr935 -o bin/BaroBuddyTest.prg \
 monkeydo bin/BaroBuddyTest.prg fr935 -t
 ```
 
-64 tests covering the buffer arithmetic, the forecast thresholds and their
-boundaries, the storm hysteresis and re-arm window, the unit conversions, the
-settings validation, the `Application.Storage` round trip, and eleven render
+69 tests covering the buffer arithmetic, the forecast thresholds and their
+boundaries, the storm hysteresis, re-arm window and its round trip through
+storage, the unit conversions, the settings validation, the
+`Application.Storage` round trip, and thirteen render
 smoke tests that draw the full face into an off-screen `BufferedBitmap`.
 
 The render tests cannot say whether the face *looks* right, but they catch what
@@ -465,6 +467,14 @@ happens on every trip into a menu or a widget.
 **History older than six hours is discarded on restore**, and the storm alert
 will not fire from data older than one hour. Readings from a previous life of
 the device say nothing about the weather now.
+
+**The storm latch is saved too, not just the pressure history.** Anything else
+that takes the screen tears the face down, and a monitor that started over
+each time would lose its hysteresis gap — a standing warning would be dropped
+the moment the fall eased below the trigger instead of below the clear level —
+and would count the same storm as a new one. A latch older than six hours is
+dropped on restore: the history that raised it is gone by then, so nothing
+left in the buffer could confirm or clear it.
 
 **Priming runs on the first draw, not in `initialize()`.** The sensor history
 is not readable while the view is being constructed; asking there returns an

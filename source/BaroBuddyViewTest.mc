@@ -416,3 +416,64 @@ function testViewSkipsRedundantSave(logger as Test.Logger) as Lang.Boolean {
 
     return true;
 }
+
+//! The warning has to survive the face being torn down. What proves it is the
+//! hysteresis gap: a drop between the clear level and the trigger keeps a
+//! standing warning up but would never raise a new one, so the same reading
+//! renders differently depending on whether the previous run's latch was
+//! restored.
+(:test)
+function testViewRestoresStormLatch(logger as Test.Logger) as Lang.Boolean {
+    var dc = ViewTestFixture.createDc();
+
+    try {
+        // Chosen to land between the default clear level and trigger
+        // (1.0 and 1.5 hPa against the window mean).
+        ViewTestFixture.seedPressureHistory(-460.0, 24);
+        Storage.deleteValue("StormState");
+
+        var fresh = new BaroBuddyView();
+        fresh.onLayout(dc);
+        fresh.onUpdate(dc);
+        Test.assertMessage(!fresh.isStormActiveForTest(),
+            "a drop inside the hysteresis gap raised a new warning");
+
+        // Now the same reading, with a warning latched a minute ago.
+        Storage.setValue("StormState", [1, Time.now().value() - 60]);
+
+        var restored = new BaroBuddyView();
+        restored.onLayout(dc);
+        restored.onUpdate(dc);
+        Test.assertMessage(restored.isStormActiveForTest(),
+            "the warning did not survive the restart");
+    } finally {
+        Storage.deleteValue("StormState");
+        Storage.deleteValue("PressureSamples");
+    }
+
+    return true;
+}
+
+//! A latch from a day ago has no history left to confirm it, and nothing in
+//! the buffer could clear it either, so it must not come back as a banner.
+(:test)
+function testViewDropsStaleStormLatch(logger as Test.Logger) as Lang.Boolean {
+    var dc = ViewTestFixture.createDc();
+
+    try {
+        ViewTestFixture.seedPressureHistory(-460.0, 24);
+        Storage.setValue("StormState", [1, Time.now().value() - 86400]);
+
+        var view = new BaroBuddyView();
+        view.onLayout(dc);
+        view.onUpdate(dc);
+
+        Test.assertMessage(!view.isStormActiveForTest(),
+            "a day old warning was restored");
+    } finally {
+        Storage.deleteValue("StormState");
+        Storage.deleteValue("PressureSamples");
+    }
+
+    return true;
+}

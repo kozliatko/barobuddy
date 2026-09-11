@@ -87,6 +87,40 @@ class StormMonitor {
         return _lastAlertTime;
     }
 
+    //! Serialises the latch and the re-arm timer.
+    //!
+    //! A watch face is torn down whenever anything else takes the screen, and
+    //! without this every one of those restarts starts the storm over: the
+    //! hysteresis gap is lost, so a warning is dropped the moment the drop
+    //! falls below the trigger instead of below the clear level, and the
+    //! re-arm window restarts, so the same storm counts as a new one.
+    //!
+    //! The array is [active, lastAlertTime], with 0 standing for "never
+    //! alerted" — no real reading carries a 1970 timestamp.
+    function toArray() as Lang.Array<Lang.Number> {
+        var last = _lastAlertTime;
+        return [_active ? 1 : 0, last == null ? 0 : last];
+    }
+
+    //! Restores a state written by toArray().
+    //!
+    //! Anything malformed leaves the monitor as it was, which for a freshly
+    //! constructed one is the same as a first run. The thresholds are not
+    //! stored: they come from the current setting, so a state saved under an
+    //! old threshold is judged against the new one on the next update().
+    function fromArray(data as Lang.Array?) as Void {
+        if (data == null || data.size() < 2) {
+            return;
+        }
+        if (!(data[0] instanceof Lang.Number) || !(data[1] instanceof Lang.Number)) {
+            return;
+        }
+
+        var last = data[1] as Lang.Number;
+        _active = (data[0] as Lang.Number) != 0;
+        _lastAlertTime = last > 0 ? last : null;
+    }
+
     //! Drops the warning and the re-arm timer.
     function reset() as Void {
         _active = false;
