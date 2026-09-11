@@ -18,6 +18,12 @@ white watch on a white sheet.
 The calibration and the screenshot have to come from the same simulator window
 position, so capture them back to back without moving the window.
 
+Give the calibration build a different application id in its manifest. The
+simulator keys persisted app settings by id, so two builds sharing one id also
+share one settings file, and whichever ran first decides what the second one
+reads out of properties.xml — which quietly ruins any screenshot meant to show
+a particular setting.
+
 A fifth argument of "nearest" scales the crop by pixel doubling instead of
 Lanczos, which keeps the face crisp when the output is an exact multiple of the
 device resolution. An output size of 0 skips the resize and writes the display

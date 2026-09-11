@@ -179,6 +179,18 @@ rather than its first sample, so a 3 hPa setting becomes a 1.5 hPa trigger; the
 warning clears again at two thirds of that, and the gap is what stops it
 flickering around the threshold.
 
+Both of these are the same face on the same history — a steady 7 hPa fall over
+six hours, which reads as a 1.8 hPa drop against the three-hour window mean.
+Only the setting differs:
+
+| Storm Threshold: 2 hPa / 3 h | Storm Threshold: 6 hPa / 3 h |
+| --- | --- |
+| ![Sensitive](docs/screenshots/storm-threshold-2.png) | ![Quiet](docs/screenshots/storm-threshold-6.png) |
+| The drop clears the 1.0 hPa trigger, so the banner takes the graph's row | The same drop is short of the 3.0 hPa trigger, so the graph stays |
+
+The forecast row is unaffected either way: the trend is falling fast in both,
+because the threshold governs the alert and not the six-hour tendency.
+
 The two measures can disagree: pressure that fell sharply and has begun
 recovering will show a rising trend while the storm is still latched. That is
 intended, not a bug — one describes where the pressure is going, the other what
