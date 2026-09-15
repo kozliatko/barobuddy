@@ -4,7 +4,7 @@
 [![Platform: Connect IQ](https://img.shields.io/badge/platform-Connect%20IQ-007cc3)](https://developer.garmin.com/connect-iq/overview/)
 [![API 3.0.0](https://img.shields.io/badge/API-3.0.0-007cc3)](https://developer.garmin.com/connect-iq/api-docs/)
 [![Language: Monkey C](https://img.shields.io/badge/language-Monkey%20C-6f4e9c)](https://developer.garmin.com/connect-iq/monkey-c/)
-[![Devices: 12](https://img.shields.io/badge/devices-12-informational)](#supported-devices)
+[![Devices: 14](https://img.shields.io/badge/devices-14-informational)](#supported-devices)
 [![Unit tests: 69](https://img.shields.io/badge/unit%20tests-69-brightgreen)](#running-the-tests)
 [![Type check: strict](https://img.shields.io/badge/monkeyc%20--l%203-clean-brightgreen)](#building-from-source)
 
@@ -110,11 +110,12 @@ shell layer, the head torch and the means to call for help anyway.
 
 ## The layout
 
-Nothing is drawn at fixed pixel coordinates. The display is round, so a layout
-designed for a 240×240 rectangle would put its corners off screen. Every
-position is stacked top to bottom in `onLayout()` from the real font metrics
-and kept inside the circle, which is also what lets the same source render on
-twelve devices with five different screen sizes.
+Nothing is drawn at fixed pixel coordinates. Most of the displays are round,
+so a layout designed for a 240×240 rectangle would put its corners off screen.
+Every position is stacked top to bottom in `onLayout()` from the real font
+metrics and kept inside the circle, which is also what lets the same source
+render on fourteen devices with six different screen sizes. The Instinct 2 is
+the exception to the circle; see [the design notes](#design-notes).
 
 | Row | Content |
 | --- | --- |
@@ -255,6 +256,8 @@ independent rules on one barometer.
 | D2 Charlie | 240×240 | 40×40 |
 | fēnix 5S | 218×218 | 36×36 |
 | fēnix Chronos | 218×218 | 36×36 |
+| Instinct 2, Instinct 2 Solar, Instinct 2 Dual Power, Instinct 2 dēzl Edition | 176×176 monochrome | 62×62 |
+| Instinct 2X Solar | 176×176 monochrome | 62×62 |
 
 | | | |
 | --- | --- | --- |
@@ -262,6 +265,8 @@ independent rules on one barometer.
 | Forerunner 935, 240×240 | fēnix 7X, 280×280 | fēnix 5S, 218×218 |
 | ![vívoactive 3](docs/screenshots/vivoactive3.png) | ![fēnix 8 43mm](docs/screenshots/fenix8-43mm.png) | ![Forerunner 965](docs/screenshots/fr965.png) |
 | vívoactive 3, 240×240 | fēnix 8 43mm, 416×416 | Forerunner 965, 454×454 |
+| ![Instinct 2](docs/screenshots/instinct2.png) | | |
+| Instinct 2, 176×176 | | |
 
 One screenshot per screen size the app ships for. Nothing is scaled: every row
 is placed from the font metrics of the device it is drawn on, which is why the
@@ -276,17 +281,18 @@ These are simulator screenshots, cropped to the display with
 why the pressure reads 864 hPa — see
 [Notes on the reading](#notes-on-the-reading).
 
-Twelve Connect IQ device profiles cover the list above: the four devices on
-the fēnix 7X row share `fenix7x` and the six on the fēnix 8 47mm row share
-`fenix847mm`, so a single build covers each row. The only thing the extra
-resource buckets hold is the launcher icon — one per icon size, plus
-`resources-vivoactive3` for the single target whose icon is not square —
+Fourteen Connect IQ device profiles cover the list above: the four devices on
+the fēnix 7X row share `fenix7x`, the six on the fēnix 8 47mm row share
+`fenix847mm` and the four on the Instinct 2 row share `instinct2`, so a single
+build covers each row. The only thing the extra resource buckets hold is the
+launcher icon — one per icon size, plus `resources-vivoactive3` for the single
+target whose icon is not square —
 because everything the face draws is laid out from the device's own metrics at
 run time rather than from a per-screen layout file.
 
 The fēnix 8 and Forerunner 965 rows are AMOLED and are drawn differently while
-they sleep, which the design notes below explain; the rest are 64-colour MIP
-displays. All run Connect IQ API 3.0.0 or later, which is what the app
+they sleep, which the design notes below explain. The Instinct 2 rows are one
+bit MIP displays, black and white only; the rest are 64-colour MIP displays. All run Connect IQ API 3.0.0 or later, which is what the app
 targets. The Forerunner 935 is the reference device: where a trade-off has to
 be made, it is made in favour of the FR935.
 
@@ -341,7 +347,7 @@ monkeyc -f monkey.jungle -d fr935 -o bin/BaroBuddy-fr935.prg \
 ```
 
 - `-l 3` is the strictest type checker. The project builds clean at that level
-  with no warnings, in both debug and release, on all twelve devices.
+  with no warnings, in both debug and release, on all fourteen devices.
 - `-r` produces a release build (about 24 kB per device).
 - `-e` together with an `.iq` output produces a store-ready package for all
   devices at once.
@@ -418,6 +424,7 @@ resources-round-218x218/  36x36 launcher icon for the smaller screens
 resources-round-454x454/  65x65 launcher icon for the FR965 and fenix 8 47mm
 resources-round-416x416/  60x60 launcher icon for the fenix 8 43mm
 resources-vivoactive3/    40x33 launcher icon, the one target that is not square
+resources-semioctagon-176x176/  62x62 launcher icon for the Instinct 2 and 2X
 tools/                    Launcher icon generator, screenshot cropper
 docs/screenshots/         Per-device simulator screenshots used in this README
 docs/store/               Native resolution screenshots for the Store listing
@@ -427,6 +434,17 @@ monkey.jungle             Build configuration: manifest and language buckets
 ## Design notes
 
 A few decisions that are not obvious from the code:
+
+**The Instinct 2 gets its own top row.** Its screen is a semi-octagon with a
+round subscreen window cut into the top right corner, and it has one bit per
+pixel. The face asks `WatchUi.getSubscreen()` for that window and, when there
+is one, draws the weather icon inside it, moves the date into the band to its
+left and gives the clock whatever height is left above the pressure row. The
+status row sits on the flat bottom edge rather than on a chord of a circle.
+Colour cannot be asked for at run time, so `monkey.jungle` compiles the
+Instinct profiles with a `(:mono)` branch that turns every grey, red and green
+into white — on a one bit panel they would all come out black — and draws the
+storm banner inverted, black on a white plate, since a red one would vanish.
 
 **The AMOLED screen goes dark on its own terms.** A panel with burn-in
 protection is not allowed `onPartialUpdate()` at all, and a sleeping face that

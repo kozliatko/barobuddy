@@ -97,6 +97,10 @@ class BaroBuddyView extends WatchUi.WatchFace {
     //! Battery level below which the icon turns red.
     private const BATTERY_LOW_PCT = 15;
 
+    //! Gap under the status row on a semi-octagon screen, where the row sits
+    //! on the flat bottom edge instead of on a chord of a circle.
+    private const STATUS_BOTTOM_MARGIN = 4;
+
     //! Space between a status icon and its value.
     private const STATUS_GAP = 2;
 
@@ -131,6 +135,9 @@ class BaroBuddyView extends WatchUi.WatchFace {
     private var _unsavedSamples as Lang.Number;
     //! True on a panel that would burn in, which is AMOLED in practice.
     private var _burnIn as Lang.Boolean;
+    //! True on a one bit panel, where every grey and every colour in the
+    //! palette collapses to black or white. See _isMonochrome().
+    private var _mono as Lang.Boolean;
     private var _primed as Lang.Boolean;
     //! When the history was last walked, so a device whose log stays empty is
     //! not rescanned on every update.
@@ -174,6 +181,9 @@ class BaroBuddyView extends WatchUi.WatchFace {
     private var _statusW as Lang.Number;
     private var _statusH as Lang.Number;
     private var _statusIconSize as Lang.Number;
+    //! Date row position. On a round screen it is centred; beside a
+    //! subscreen it moves into the band to the left of it.
+    private var _dateX as Lang.Number;
     //! Clock font chosen for this screen, from FONTS_TIME.
     private var _fontTime as Graphics.FontDefinition;
 
@@ -195,6 +205,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
         var device = System.getDeviceSettings();
         _burnIn = (device has :requiresBurnInProtection) && device.requiresBurnInProtection;
         _partialUpdatesAllowed = !_burnIn && (WatchUi.WatchFace has :onPartialUpdate);
+        _mono = _isMonochrome();
         _unsavedSamples = 0;
         _primed = false;
         _lastPrimeSec = null;
@@ -218,6 +229,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
         _secondsY = 0;
         _secondsW = 0;
         _secondsH = 0;
+        _dateX = 0;
         _dateY = 0;
         _pressureY = 0;
         _arrowSize = 0;
@@ -250,8 +262,6 @@ class BaroBuddyView extends WatchUi.WatchFace {
         // Two pixels in from the bezel so no glyph is clipped by the round edge.
         var radius = (w < h ? w : h) / 2 - 2;
 
-        _fontTime = _pickTimeFont(h);
-        var timeH = Graphics.getFontHeight(_fontTime);
         var dateH = Graphics.getFontHeight(FONT_DATE);
         var pressureH = Graphics.getFontHeight(FONT_PRESSURE);
 
@@ -264,7 +274,14 @@ class BaroBuddyView extends WatchUi.WatchFace {
         // _formatSteps() and _fit() shorten rather than assume.
         _statusW = w * 78 / 100;
         _statusIconSize = _statusH * 50 / 100;
-        _statusY = centerY + _chordOffset(radius, _statusW / 2) - _statusH;
+        var sub = _subscreen();
+        if (sub != null) {
+            // A screen with a subscreen is a semi-octagon, not a circle: its
+            // bottom edge is flat across the middle, so the row sits on it.
+            _statusY = h - _statusH - STATUS_BOTTOM_MARGIN;
+        } else {
+            _statusY = centerY + _chordOffset(radius, _statusW / 2) - _statusH;
+        }
 
         _graphH = h * 16 / 240;
         if (_graphH < 8) {
@@ -284,18 +301,27 @@ class BaroBuddyView extends WatchUi.WatchFace {
         _pressureY = _graphY - 2 - pressureH;
         _arrowSize = pressureH / 2;
 
-        _dateY = _pressureY - 2 - dateH;
+        var timeH = 0;
+        if (sub != null) {
+            timeH = _layoutBesideSubscreen(sub, dateH);
+        } else {
+            _fontTime = _pickTimeFont(h * TIME_HEIGHT_PCT / 100);
+            timeH = Graphics.getFontHeight(_fontTime);
 
-        _timeY = _dateY - timeH;
-        if (_timeY < 0) {
-            _timeY = 0;
-        }
+            _dateX = _centerX;
+            _dateY = _pressureY - 2 - dateH;
 
-        _iconSize = h * 28 / 240;
-        _iconX = _centerX - (_iconSize / 2);
-        _iconY = (_timeY - _iconSize) / 2;
-        if (_iconY < 2) {
-            _iconY = 2;
+            _timeY = _dateY - timeH;
+            if (_timeY < 0) {
+                _timeY = 0;
+            }
+
+            _iconSize = h * 28 / 240;
+            _iconX = _centerX - (_iconSize / 2);
+            _iconY = (_timeY - _iconSize) / 2;
+            if (_iconY < 2) {
+                _iconY = 2;
+            }
         }
 
         // Both widths are measured whether or not seconds are enabled, so that
@@ -308,6 +334,38 @@ class BaroBuddyView extends WatchUi.WatchFace {
 
         _applySettings();
         _logLayout(dc, w, h);
+    }
+
+    //! The top of the stack on a screen with a subscreen, the round window the
+    //! Instinct 2 cuts into its top right corner.
+    //!
+    //! Nothing below the subscreen's bottom edge is squeezed: the clock takes
+    //! whatever height is left between it and the pressure row, the weather
+    //! icon moves into the window itself, and the date takes the band to its
+    //! left, which would otherwise stay empty. Returns the clock font height.
+    private function _layoutBesideSubscreen(sub as Graphics.BoundingBox,
+                                            dateH as Lang.Number) as Lang.Number {
+        // The box's fields are typed nullable; getSubscreen() fills all four.
+        var subX = sub.x as Lang.Number;
+        var subY = sub.y as Lang.Number;
+        var subW = sub.width as Lang.Number;
+        var subH = sub.height as Lang.Number;
+        var subBottom = subY + subH;
+
+        _fontTime = _pickTimeFont(_pressureY - subBottom);
+        var timeH = Graphics.getFontHeight(_fontTime);
+        _timeY = _pressureY - timeH;
+        if (_timeY < subBottom) {
+            _timeY = subBottom;
+        }
+
+        _iconSize = subW * 60 / 100;
+        _iconX = subX + ((subW - _iconSize) / 2);
+        _iconY = subY + ((subH - _iconSize) / 2);
+
+        _dateX = subX / 2;
+        _dateY = subY + ((subH - dateH) / 2);
+        return timeH;
     }
 
     public function onShow() as Void {
@@ -829,7 +887,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
 
     private function _drawSeconds(dc as Graphics.Dc) as Void {
         var seconds = System.getClockTime().sec;
-        dc.setColor(COLOR_SECONDS, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(_ink(COLOR_SECONDS), Graphics.COLOR_TRANSPARENT);
         dc.drawText(_secondsX, _secondsY, FONT_SECONDS, ":" + seconds.format("%02d"),
             Graphics.TEXT_JUSTIFY_LEFT);
     }
@@ -840,8 +898,8 @@ class BaroBuddyView extends WatchUi.WatchFace {
         var info = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
         var dateStr = Lang.format("$1$ $2$ $3$", [info.day_of_week, info.day, info.month]);
 
-        dc.setColor(COLOR_DATE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_centerX, _dateY, FONT_DATE, dateStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(_ink(COLOR_DATE), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(_dateX, _dateY, FONT_DATE, dateStr, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     //! Trend arrow plus the current reading, centred as one group.
@@ -862,7 +920,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
             );
         }
 
-        dc.setColor(COLOR_PRESSURE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(_ink(COLOR_PRESSURE), Graphics.COLOR_TRANSPARENT);
         dc.drawText(startX + arrowW, _pressureY, FONT_PRESSURE, text, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
@@ -872,20 +930,37 @@ class BaroBuddyView extends WatchUi.WatchFace {
             _stormBanner = WatchUi.loadResource(Rez.Strings.StormBanner) as Lang.String;
         }
 
-        dc.setColor(COLOR_STORM, Graphics.COLOR_TRANSPARENT);
-
         var textW = dc.getTextWidthInPixels(_stormBanner, FONT_DATE);
         var markSize = _statusH * 70 / 100;
-        var startX = _centerX - ((textW + markSize + 6) / 2);
+        var groupW = textW + markSize + 6;
+        var startX = _centerX - (groupW / 2);
 
-        _drawWarningMark(dc, startX + (markSize / 2), _bannerY + (_statusH / 2), markSize);
+        // Red means nothing on a one bit panel, so there the banner is drawn
+        // inverted instead: black on a white plate is the loudest thing the
+        // screen can do, and it cannot be mistaken for the graph it replaces.
+        var ink = COLOR_STORM;
+        var paper = Graphics.COLOR_BLACK;
+        if (_mono) {
+            ink = Graphics.COLOR_BLACK;
+            paper = Graphics.COLOR_WHITE;
+            dc.setColor(paper, Graphics.COLOR_TRANSPARENT);
+            // Trimmed to the glyphs rather than the font's line height, whose
+            // leading would otherwise run the plate into the pressure row.
+            dc.fillRoundedRectangle(startX - 4, _bannerY + 2, groupW + 8,
+                Graphics.getFontHeight(FONT_DATE) - 4, 3);
+        }
+        dc.setColor(ink, Graphics.COLOR_TRANSPARENT);
+
+        _drawWarningMark(dc, startX + (markSize / 2), _bannerY + (_statusH / 2), markSize,
+            ink, paper);
         dc.drawText(startX + markSize + 6, _bannerY, FONT_DATE, _stormBanner,
             Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     //! Warning triangle with a punched-out exclamation mark.
     private function _drawWarningMark(dc as Graphics.Dc, cx as Lang.Number, cy as Lang.Number,
-                                      size as Lang.Number) as Void {
+                                      size as Lang.Number, ink as Lang.Number,
+                                      paper as Lang.Number) as Void {
         var half = size / 2;
         dc.fillPolygon([
             [cx, cy - half],
@@ -893,13 +968,13 @@ class BaroBuddyView extends WatchUi.WatchFace {
             [cx + half, cy + half]
         ]);
 
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(paper, Graphics.COLOR_TRANSPARENT);
         var barW = size / 6;
         if (barW < 1) {
             barW = 1;
         }
         dc.fillRectangle(cx - (barW / 2), cy - (half / 4), barW, half);
-        dc.setColor(COLOR_STORM, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(ink, Graphics.COLOR_TRANSPARENT);
     }
 
     //! Trend arrow drawn from polygons. Unicode arrows are not guaranteed to
@@ -910,11 +985,11 @@ class BaroBuddyView extends WatchUi.WatchFace {
         var halfH = _arrowSize / 2;
 
         if (direction > 0) {
-            dc.setColor(Graphics.COLOR_DK_GREEN, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(_ink(Graphics.COLOR_DK_GREEN), Graphics.COLOR_TRANSPARENT);
         } else if (direction < 0) {
-            dc.setColor(Graphics.COLOR_DK_RED, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(_ink(Graphics.COLOR_DK_RED), Graphics.COLOR_TRANSPARENT);
         } else {
-            dc.setColor(COLOR_PRESSURE, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(_ink(COLOR_PRESSURE), Graphics.COLOR_TRANSPARENT);
         }
 
         if (direction == 0) {
@@ -960,7 +1035,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
             return;
         }
 
-        dc.setColor(COLOR_GRAPH, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(_ink(COLOR_GRAPH), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
 
         var last = points.size() - 1;
@@ -1044,10 +1119,10 @@ class BaroBuddyView extends WatchUi.WatchFace {
         var iconCx = startX + (_statusIconSize / 2);
         var iconCy = _statusY + (_statusH / 2);
 
-        dc.setColor(_statusIconColor(field), Graphics.COLOR_TRANSPARENT);
+        dc.setColor(_ink(_statusIconColor(field)), Graphics.COLOR_TRANSPARENT);
         _drawStatusIcon(dc, field, iconCx, iconCy, _statusIconSize);
 
-        dc.setColor(COLOR_STATUS, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(_ink(COLOR_STATUS), Graphics.COLOR_TRANSPARENT);
         dc.drawText(startX + _statusIconSize + STATUS_GAP, _statusY, FONT_STATUS, text,
             Graphics.TEXT_JUSTIFY_LEFT);
     }
@@ -1433,7 +1508,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
     //! Shown while the buffer is still filling: three dots.
     private function _drawCollectingIcon(dc as Graphics.Dc, cx as Lang.Number,
                                          cy as Lang.Number) as Void {
-        dc.setColor(COLOR_DATE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(_ink(COLOR_DATE), Graphics.COLOR_TRANSPARENT);
         var gap = _iconSize / 4;
         var r = _iconSize / 12;
         if (r < 1) {
@@ -1551,8 +1626,7 @@ class BaroBuddyView extends WatchUi.WatchFace {
     //! Font sizes are a device decision, not a pixel one: two screens of the
     //! same height can put the same font at wildly different heights. Measuring
     //! is the only way to keep the same proportions everywhere.
-    private function _pickTimeFont(h as Lang.Number) as Graphics.FontDefinition {
-        var budget = h * TIME_HEIGHT_PCT / 100;
+    private function _pickTimeFont(budget as Lang.Number) as Graphics.FontDefinition {
         for (var i = 0; i < FONTS_TIME.size(); i++) {
             if (Graphics.getFontHeight(FONTS_TIME[i]) <= budget) {
                 return FONTS_TIME[i];
@@ -1561,6 +1635,38 @@ class BaroBuddyView extends WatchUi.WatchFace {
         // Every candidate is too tall. The smallest is the best of a bad set,
         // and onLayout() clamps the top of the stack to the screen anyway.
         return FONTS_TIME[FONTS_TIME.size() - 1];
+    }
+
+    //! Colour a foreground is actually drawn in. On a one bit panel the
+    //! firmware maps every palette entry to the nearest of black and white,
+    //! which turns the dark greys, the red and the green of this face into
+    //! black on black. There, anything that is not background is white.
+    private function _ink(color as Lang.Number) as Lang.Number {
+        if (_mono && color != Graphics.COLOR_BLACK) {
+            return Graphics.COLOR_WHITE;
+        }
+        return color;
+    }
+
+    //! The subscreen window, or null on a screen without one.
+    private function _subscreen() as Graphics.BoundingBox? {
+        if (WatchUi has :getSubscreen) {
+            return WatchUi.getSubscreen();
+        }
+        return null;
+    }
+
+    //! Connect IQ has no call that reports the colour depth of the panel, so
+    //! the answer is compiled in: monkey.jungle excludes one of these two
+    //! per device.
+    (:color)
+    private function _isMonochrome() as Lang.Boolean {
+        return false;
+    }
+
+    (:mono)
+    private function _isMonochrome() as Lang.Boolean {
+        return true;
     }
 
     //! Vertical distance from the screen centre at which a horizontal run of

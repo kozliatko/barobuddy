@@ -13,6 +13,7 @@ anywhere in the app.
 | `fr965-always-on.png` | Forerunner 965, always-on screen | 454×454 |
 | `fenix8-43mm.png` | fēnix 8 43mm | 416×416 |
 | `vivoactive3.png` | vívoactive 3 | 240×240 |
+| `instinct2.png` | Instinct 2 | 176×176 |
 
 That is one file per screen size the app ships for, which is what the listing
 needs: the Store picks the screenshot whose resolution matches the watch the

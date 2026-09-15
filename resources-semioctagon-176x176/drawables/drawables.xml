@@ -1,0 +1,4 @@
+<drawables xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <!-- Instinct 2 and 2X: 62x62 -->
+    <bitmap id="LauncherIcon" filename="launcher_icon.png" dithering="none" />
+</drawables>

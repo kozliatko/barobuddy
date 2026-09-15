@@ -11,11 +11,15 @@ Initial development. Nothing has been released yet.
 
 ### Added
 
-- Barometric watch face for twelve Connect IQ devices: Forerunner 935 and 965,
+- Barometric watch face for fourteen Connect IQ devices: Forerunner 935 and 965,
   vívoactive 3, fēnix 5, 5S and 5X, fēnix 7S, fēnix Chronos, D2 Charlie, the
   fēnix 7X profile that also covers the Enduro 2, tactix 7 and quatix 7X
   Solar, and the fēnix 8 AMOLED in both 43mm and 47/51mm, the latter also
-  covering the tactix 8 and quatix 8.
+  covering the tactix 8 and quatix 8, and the Instinct 2 and Instinct 2X
+  Solar.
+- Instinct 2 layout: the weather icon sits in the subscreen window, the date
+  beside it, and the one bit panel gets an all-white palette with an inverted
+  storm banner.
 - Always-on screen for panels that report `requiresBurnInProtection`, which on
   the supported devices means the Forerunner 965 and the fēnix 8 AMOLED:
   partial updates are given up,

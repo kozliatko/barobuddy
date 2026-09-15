@@ -6,3 +6,10 @@ project.manifest = manifest.xml
 # package, so English is registered as a language of its own, pointed at the
 # same file rather than a copy of it.
 base.lang.eng = $(base.lang.eng);resources/strings
+
+# Colour depth is not something a watch face can ask the device for, so it is
+# decided here: every device builds the (:color) branch except the one bit
+# Instinct 2 panels, which build the (:mono) branch instead.
+base.excludeAnnotations = mono
+instinct2.excludeAnnotations = color
+instinct2x.excludeAnnotations = color
